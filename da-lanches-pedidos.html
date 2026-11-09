@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>D&A Lanche's - Pedidos</title>
+<style>
+:root{--bg:#faf3e0;--card:#fffdf6;--ink:#1c1a17;--mut:#7d705a;--gold:#e0a21b;--gold2:#b97d00;--line:#eadfc2;--ok:#2f7d4f;--red:#b8321f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171512;--card:#252119;--ink:#f6ecd6;--mut:#b3a68c;--line:#3a3326;--red:#ff7a63;--ok:#62c48d}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif}
+header{background:#1c1a17;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;border-bottom:4px solid var(--gold)}
+header img{width:52px;height:52px;border-radius:50%;border:2px solid var(--gold)}
+header h1{margin:0;font-size:20px;line-height:1.1}header small{color:var(--gold);font-weight:700}
+.tabs{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs button{flex:1;white-space:nowrap;border:2px solid var(--ink);background:transparent;color:var(--ink);padding:10px 12px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;min-height:44px}
+.tabs button.on{background:var(--gold);border-color:var(--gold);color:#1c1a17}
+main{max-width:1000px;margin:0 auto;padding:14px 14px 120px}
+.view{display:none}.view.on{display:block}
+.cats{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px}
+.cats button{flex:none;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:99px;font-weight:800;font-size:15px;cursor:pointer}
+.cats button.on{background:var(--ink);color:var(--gold);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.item{background:var(--card);border:2px solid var(--line);border-left:6px solid var(--gold);border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;min-height:110px}
+.item.has{border-color:var(--gold);background:var(--line)}
+.item b{font-size:16px}.item>span{color:var(--gold2);font-weight:800}
+.st{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.st button{width:46px;height:46px;border-radius:10px;border:2px solid var(--ink);background:transparent;color:var(--ink);font-size:26px;font-weight:800;cursor:pointer}
+.st button.p{background:var(--gold);border-color:var(--gold);color:#1c1a17}.st button:disabled{opacity:.3}.st b{font-size:22px}
+.stk{display:inline-block;font-size:12px;font-weight:800;border-radius:99px;padding:3px 10px}.stk.ok{background:#dff0e4;color:#1f6b3f}.stk.lo{background:#fdeccb;color:#8a5a00}.stk.no{background:#f9d9d3;color:#a32a17}.ct{font-size:11px;font-weight:800;color:var(--gold2);text-transform:uppercase;letter-spacing:.6px}.ds{font-size:13px;color:var(--mut);margin:4px 0 8px;line-height:1.3}.pv{font-size:21px;font-weight:800;color:var(--gold2);margin-bottom:4px}.item{min-height:190px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#1c1a17;color:#fff;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:center;border-top:3px solid var(--gold)}
+.bar b{color:var(--gold);font-size:20px}
+.bar button,.btn{background:var(--gold);color:#1c1a17;border:0;border-radius:10px;padding:14px 20px;font-weight:800;font-size:16px;cursor:pointer}
+.bar button:disabled{opacity:.35}
+dialog{border:3px solid var(--ink);border-radius:16px;background:var(--card);color:var(--ink);width:min(460px,94vw);max-height:92vh;padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.qty{display:flex;align-items:center;gap:10px}
+.qty button{width:36px;height:36px;border-radius:8px;border:2px solid var(--ink);background:transparent;color:var(--ink);font-weight:800;font-size:18px;cursor:pointer}
+input[type=text],select{width:100%;padding:12px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;margin:6px 0}
+.btn{width:100%;margin-top:10px}.btn.alt{background:transparent;color:var(--ink);border:2px solid var(--ink)}.btn.dg{background:transparent;color:var(--red);border:2px solid var(--red)}
+.empty{color:var(--mut);padding:36px 0;text-align:center}
+.sums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sc{background:#1c1a17;color:#fff;border-radius:12px;padding:12px;border-bottom:4px solid var(--gold)}.sc small{color:var(--gold);font-weight:800;display:block}.sc b{display:block;font-size:19px;margin:2px 0}.sc span{color:#d9cfb8;font-weight:700;font-size:14px}
+.dh{display:flex;justify-content:space-between;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:8px;margin-top:14px;font-weight:800;font-size:14px}
+.rp{border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;margin-left:6px}
+.pc{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}.pc.off{opacity:.55}
+.pc small{color:var(--mut);font-weight:700}.pc .pr{color:var(--gold2);font-weight:800;font-size:18px}
+.pc .ed{border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:8px;padding:9px;font-weight:800;cursor:pointer}
+.sw{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}.sw input{width:22px;height:22px}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--ok);color:#fff;padding:10px 18px;border-radius:99px;font-weight:800;display:none;z-index:99}
+header{background:linear-gradient(135deg,#1c1a17,#33291a)}
+.hs{display:none!important}
+.tabs button{border:none;background:var(--card);box-shadow:0 1px 5px rgba(60,40,0,.15);border-radius:12px;padding:12px}.tabs button.on{background:var(--gold);box-shadow:0 3px 10px #e0a21b66}
+#sr{border-radius:14px;padding:14px;margin:0 0 12px;background:var(--card);border:1px solid var(--line);box-shadow:0 1px 5px rgba(60,40,0,.08)}
+.cats button{display:flex;align-items:center;gap:6px;box-shadow:0 1px 4px rgba(60,40,0,.1)}
+.item{border:1px solid var(--line);border-left:1px solid var(--line);border-radius:20px;padding:14px;gap:8px;box-shadow:0 2px 12px rgba(60,40,0,.09);transition:transform .15s,box-shadow .15s;min-height:250px}
+.item:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(60,40,0,.18)}
+.item.has{border:2px solid var(--gold);background:var(--card);box-shadow:0 0 0 4px #e0a21b33}
+.top{display:flex;justify-content:space-between;align-items:flex-start}
+.tile{width:100px;height:100px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:38px;overflow:hidden;flex:none}
+.tile img{width:100%;height:100%;object-fit:cover}
+.image-control{margin:8px 0}.image-control label{display:block;font-weight:800}.image-control input[type=file]{width:100%;margin:8px 0;color:var(--ink)}.image-control small{display:block;color:var(--mut)}.image-preview{width:110px;height:110px;margin-top:8px;border:1px dashed var(--mut);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px}.image-preview img{width:100%;height:100%;object-fit:cover;display:none}
+.pc-thumb{width:80px;height:80px;object-fit:cover;border-radius:12px}
+.pv{background:#1c1a17;color:var(--gold);padding:6px 12px;border-radius:99px;font-size:16px;margin:0}
+.item .ds{min-height:34px;margin:4px 0 6px}
+.bar{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));border-radius:18px;border:none;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+dialog{border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+header{flex-wrap:wrap}.pbtn{border:2px solid var(--gold);color:var(--gold);background:transparent;border-radius:10px;padding:8px 10px;font-weight:800;font-size:12px;cursor:pointer;min-height:44px}.pbtn.on{background:var(--gold);color:#1c1a17}
+header{position:relative}#pb{position:absolute;left:50%;transform:translateX(-50%)}
+@media(max-width:680px){header{display:grid!important;grid-template-columns:52px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:8px;row-gap:10px}header>img{grid-column:1;grid-row:1}header>div:not(.hs):not(.auth-badge){grid-column:2;grid-row:1}header>.auth-badge{grid-column:3;grid-row:1}#pb{position:static;grid-column:1/-1;grid-row:2;justify-self:center;transform:none}}
+@media(min-width:681px) and (max-width:900px){header{display:grid!important;grid-template-columns:52px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:12px;row-gap:10px}header>img{grid-column:1;grid-row:1}header>div:not(.hs):not(.auth-badge){grid-column:2;grid-row:1}header>.auth-badge{grid-column:3;grid-row:1}#pb{position:static;grid-column:1/-1;grid-row:2;justify-self:center;transform:none}}
+@media(max-width:680px){
+header{padding:10px 12px;column-gap:8px}
+header h1{font-size:clamp(16px,5vw,20px)}
+header>.auth-badge{gap:5px;font-size:13px}
+header>.auth-badge span{max-width:96px;overflow-wrap:anywhere}
+.tabs{gap:8px;padding:8px;scrollbar-width:thin}
+.tabs button{flex:0 0 auto;min-height:48px;padding:10px 14px}
+main{padding:12px 10px 150px}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.item{min-width:0;min-height:0;padding:9px;gap:6px;border-radius:14px}
+.item .top{align-items:center;gap:6px}
+.item .tile{width:54px;height:54px;border-radius:11px;font-size:26px}
+.item .pv{font-size:13px;padding:5px 7px;white-space:nowrap}
+.item b{font-size:14px;line-height:1.2;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.item .ds{display:-webkit-box;min-height:0;margin:0;font-size:11px;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}
+.item .stk{font-size:10px;padding:3px 6px}
+.item .st{margin-top:5px}
+.item .st button{width:42px;height:42px}
+.item .st b{font-size:18px}
+.sums{grid-template-columns:1fr;gap:8px}
+.sc{padding:10px 12px}
+.sc b{font-size:17px}
+.dh{flex-wrap:wrap;gap:4px 10px}
+.oc .row{flex-wrap:wrap;align-items:flex-start}
+.oc .row>span:first-child{min-width:0;flex:1 1 100%;overflow-wrap:anywhere}
+.oc .row>span:last-child{display:flex;align-items:center;gap:8px;max-width:100%;margin-left:auto}
+.rp{margin-left:0}
+.dt .dl{align-items:flex-start;flex-wrap:wrap;overflow-wrap:anywhere}
+.bar{left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar>div{min-width:0}
+.bar b{font-size:18px}
+.bar button{min-height:48px;padding:10px 12px;font-size:14px}
+dialog{width:min(460px,calc(100vw - 20px));max-height:92vh;max-height:92dvh;padding:14px;overflow-y:auto}
+.pc{min-width:0}
+}
+@media(max-width:380px){
+header{grid-template-columns:44px minmax(0,1fr) auto}
+header img{width:44px;height:44px}
+header>.auth-badge{flex-direction:column;align-items:flex-end;font-size:12px}
+.item{padding:8px}
+.item .tile{width:46px;height:46px;font-size:23px}
+.item .pv{font-size:12px;padding:5px 6px}
+.bar{align-items:stretch}
+.bar button{max-width:58%;line-height:1.2}
+.oc .row>span:last-child{width:100%;justify-content:space-between;margin-left:0}
+}
+@media(min-width:420px) and (max-width:680px){
+.grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.item{padding:8px}
+.item .top{align-items:flex-start;flex-direction:column}
+.item .tile{width:48px;height:48px;font-size:24px}
+}
+@media(min-width:681px) and (max-width:900px){
+main{padding-left:18px;padding-right:18px}
+.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sums{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+}
+@media(min-width:901px){
+#grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@supports not (display:grid){
+@media(max-width:680px){
+.grid{display:flex;flex-wrap:wrap;margin:-4px}
+.grid>.item{width:calc(50% - 8px);margin:4px}
+}
+@media(min-width:420px) and (max-width:680px){
+.grid>.item{width:calc(33.333% - 8px)}
+}
+@media(min-width:681px) and (max-width:900px){
+.grid{display:flex;flex-wrap:wrap;margin:-6px}
+.grid>.item{width:calc(33.333% - 12px);margin:6px}
+}
+@media(min-width:901px){
+#grid{display:flex;flex-wrap:wrap;margin:-7px}
+#grid>.item{width:calc(25% - 14px);margin:7px}
+}
+@media(max-width:900px){
+header{display:flex!important;flex-wrap:wrap;align-items:center}
+header>img{flex:0 0 52px}
+header>div:not(.hs):not(.auth-badge){flex:1 1 120px;min-width:0}
+header>.auth-badge{flex:0 0 auto}
+#pb{position:static;transform:none;margin:0 auto}
+}
+@media(max-width:680px){
+header>img{flex-basis:44px;width:44px;height:44px}
+header>div:not(.hs):not(.auth-badge){flex:1 1 80px}
+header>.auth-badge{max-width:84px;gap:4px}
+}
+}
+.hint{background:var(--line);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;margin-bottom:12px}
+.refresh-data{width:100%;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;font-weight:800;cursor:pointer}
+.refresh-data:disabled{opacity:.65;cursor:wait}
+.oc{border-bottom:1px dashed var(--line)}.oc .row{border:none}.dt{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 10px;font-size:14px}.dl{display:flex;justify-content:space-between;gap:10px;padding:4px 0}.dl.tt{border-top:1px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:800;font-size:16px}
+</style></head><body>
+<header><img src="data:image/jpeg;base64,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" alt="D&A Lanche's"><div><h1>D&amp;A Lanche's</h1><small>Sistema de pedidos</small></div><div class="hs" id="hs"></div><button class="pbtn" id="pb" onclick="btConn()">🖨️ Conectar impressora</button></header>
+<nav class="tabs"><button id="t1" class="on" onclick="go(1)">Catálogo</button><button id="t3" onclick="go(3)">Histórico</button><button id="t4" onclick="go(4)">Estoque</button></nav>
+<div class="toast" id="toast"></div>
+<main>
+<section class="view on" id="v1"><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
+<section class="view" id="v3"><div class="hint">Toque em um pedido para ver as informações, imprimir ou cancelar.</div><div class="sums" id="sum"></div><input type="text" id="q" placeholder="Buscar pedido pelo número ou produto" oninput="drawHist()"><div id="hist"></div></section>
+<section class="view" id="v4"><button class="btn" style="margin:0 0 12px" onclick="edit(0)">+ Adicionar novo produto</button><div class="grid" id="prods"></div></section>
+</main>
+<div class="bar" id="bar"><div><div id="n">0 itens</div><b id="tot">R$ 0,00</b></div><button id="rev" disabled onclick="send()">🖨️ Imprimir pedido</button></div>
+
+<dialog id="pd"><h2 style="margin:0 0 6px" id="pdt">Produto</h2>
+<input type="text" id="pn" placeholder="Nome do produto">
+<select id="ps" onchange="cs()"></select><input type="text" id="pc" placeholder="Nome da nova categoria" style="display:none">
+<input type="text" id="pp" inputmode="decimal" placeholder="Preço (opcional; definir antes de vender)"><input type="text" id="pe" inputmode="numeric" placeholder="Quantidade em estoque (vazio = sem controle)">
+<div class="image-control"><label for="pi">Foto do produto</label><input type="file" id="pi" accept="image/jpeg,image/png,image/webp" onchange="previewProductImage(this)"><small>JPG, PNG ou WEBP; até 5 MB. A imagem será recortada em quadrado e otimizada.</small><div class="image-preview"><span id="pimgFallback">Prévia da foto</span><img id="pimg" alt="Prévia da foto do produto"></div><button class="btn alt" type="button" id="removeProductImageBtn" onclick="clearProductImage()" style="display:none">Remover foto</button></div>
+<label class="sw"><input type="checkbox" id="pa" checked>Produto ativo (aparece no cardápio)</label>
+<button class="btn" onclick="saveP()">Salvar</button><button class="btn alt" onclick="pd.close()">Cancelar</button></dialog>
+
+<script>
+var NID=1,MENU=[],CF=null,cart={},orders=[],hist=[],seq=1,cat="Todos",EID=0,SENDING=false,REMOVE_PRODUCT_IMAGE=false,IMAGE_PREVIEW_URL=null;
+var $=function(i){return document.getElementById(i)},pd=$("pd");
+var money=function(v){return "R$ "+v.toFixed(2).replace(".",",")};
+async function api(path,options){var r=await fetch(path,options||{}),data=await r.json();if(!r.ok)throw new Error(data.erro||"Falha ao comunicar com o servidor.");return data}
+function pedidoFromApi(o){o.t=new Date(String(o.t).replace(" ","T"));return o}
+async function loadData(){var data=await api("/api/dados");MENU=data.produtos;orders=data.pedidos.map(pedidoFromApi);hist=[];NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1);seq=orders.reduce(function(n,o){return Math.max(n,o.id+1)},1)}
+async function loadProducts(){var data=await api("/api/produtos");MENU=data.produtos;NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1)}
+async function startApp(){try{await loadData();drawCats();drawGrid();drawHist();hdr()}catch(e){console.error(e);toast("Erro ao carregar o banco: "+e.message)}}
+function P(id){return MENU.filter(function(m){return m.id==id})[0]}
+function cartStorageKey(){return AUTH?"da-lanches-cart:"+AUTH.station_id:null}
+function saveCart(){var key=cartStorageKey();if(!key)return;try{if(Object.keys(cart).length)localStorage.setItem(key,JSON.stringify(cart));else localStorage.removeItem(key)}catch(error){console.error(error);toast("Não foi possível salvar o pedido neste aparelho.")}}
+function restoreCart(){var key=cartStorageKey();if(!key)return;try{var saved=localStorage.getItem(key);if(!saved)return;var parsed=JSON.parse(saved),restored={};Object.keys(parsed).forEach(function(id){var product=P(id),quantity=Number(parsed[id]);if(!product||!product.on||product.p==null||!Number.isInteger(quantity)||quantity<1)return;if(product.e!=null)quantity=Math.min(quantity,product.e);if(quantity>0)restored[id]=quantity});cart=restored;saveCart();if(Object.keys(cart).length)toast("Pedido em andamento restaurado.")}catch(error){console.error(error);toast("Não foi possível restaurar o pedido salvo.")}}
+function toast(t){var e=$("toast");e.textContent=t;e.style.display="block";setTimeout(function(){e.style.display="none"},1600)}
+async function go(n){[1,3,4].forEach(function(i){$("v"+i).className="view"+(n==i?" on":"");$("t"+i).className=n==i?"on":""});$("bar").style.display=n==1?"flex":"none";if(n==1){try{await loadProducts();drawCats();sum()}catch(e){console.error(e);toast("Erro ao atualizar cardápio: "+e.message)}}if(n==3)drawHist();if(n==4)drawProds()}
+function cats(){var c=["Todos"];MENU.forEach(function(m){if(m.on&&c.indexOf(m.c)<0)c.push(m.c)});return c}
+function allcats(){var c=[];MENU.forEach(function(m){if(c.indexOf(m.c)<0)c.push(m.c)});return c}
+function drawCats(){var c=cats();if(c.indexOf(cat)<0)cat="Todos";$("cats").innerHTML=c.map(function(x){return '<button class="'+(x==cat?"on":"")+'" data-c="'+x+'" onclick="setCat(this.dataset.c)">'+(x=="Todos"?"🍴":(EM[x]||"🍽️"))+' '+x+'</button>'}).join("")}
+function setCat(c){cat=c;drawCats();drawGrid()}
+function drawGrid(){$("grid").innerHTML=MENU.filter(function(m){return m.on&&(cat=="Todos"||m.c==cat)&&m.n.toLowerCase().indexOf($("sr").value.toLowerCase())>=0}).map(function(m){var q=cart[m.id]||0,hs=m.e!=null,left=hs?m.e-q:0,noPrice=m.p==null;return '<div class="item'+(q?' has':'')+'"><div class="top"><div class="tile" style="background:'+cc(m.c)+'33">'+(m.img?'<img src="'+m.img+'" alt="" loading="lazy">':em(m))+'</div><div class="pv">'+(noPrice?'Preço a definir':money(m.p))+'</div></div><div><div class="ct">'+m.c+'</div><b>'+m.n+'</b><div class="ds">'+(m.d||"")+'</div></div><div>'+(noPrice?'<span class="stk lo">Defina o preço para vender</span>':hs?(left<=0?'<span class="stk no">Esgotado</span>':left<=5?'<span class="stk lo">Estoque baixo: restam '+left+'</span>':'<span class="stk ok">'+left+' em estoque</span>'):'<span class="stk ok">Disponível</span>')+'<div class="st"><button onclick="chg('+m.id+',-1)"'+(q?'':' disabled')+'>−</button><b>'+q+'</b><button class="p" onclick="chg('+m.id+',1)"'+(noPrice||hs&&left<=0?' disabled':'')+'>+</button></div></div></div>'}).join("")}
+function chg(id,d){var pm=P(id);if(d>0&&pm.p==null){toast("Defina o preço do produto antes de vender");return}if(d>0&&pm.e!=null&&(cart[id]||0)>=pm.e){toast("Sem estoque");return}cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];saveCart();sum()}
+function total(){return Object.keys(cart).reduce(function(s,i){return s+P(i).p*cart[i]},0)}
+function count(){return Object.keys(cart).reduce(function(s,i){return s+cart[i]},0)}
+function sum(){$("n").textContent=count()+(count()==1?" item":" itens");$("tot").textContent=money(total());$("rev").disabled=!count();drawGrid()}
+var CC={"Pastéis":"#e0a21b","Coxinhas":"#e8883a","Pizzas":"#d9503f","Bebidas":"#3a9ad9"},EM={"Pastéis":"🥟","Coxinhas":"🍗","Pizzas":"🍕","Bebidas":"🥤"};
+function cc(c){return CC[c]||"#9a8a6a"}function em(m){return m.n.indexOf("Suco")==0?"🍊":(EM[m.c]||"🍽️")}
+var EX=null,BT=null,BC=null,SV=["000018f0-0000-1000-8000-00805f9b34fb","0000ffe0-0000-1000-8000-00805f9b34fb","0000ff00-0000-1000-8000-00805f9b34fb","e7810a71-73ae-499d-8c15-faa9aef0c3f2","49535343-fe7d-4ae5-8fa9-9fafd205e455","0000fee7-0000-1000-8000-00805f9b34fb"];
+function tgl(id){EX=EX==id?null:id;drawHist()}
+function det(o){var h='<div class="dt"><div class="dl"><span>Pedido #'+String(o.id).padStart(3,"0")+'</span><span>'+o.t.toLocaleDateString("pt-BR")+' '+o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'</span></div>';
+o.itens.forEach(function(x){h+='<div class="dl"><span>'+x.q+'x '+x.n+'</span><span>'+money(x.p)+' cada → <b>'+money(x.q*x.p)+'</b></span></div>'});
+return h+'<div class="dl"><span>Situação</span><span>'+(o.cancel?'Cancelado':o.pronto?'Entregue':'Em preparo')+'</span></div><div class="dl tt"><span>Total</span><span>'+money(tot(o))+'</span></div></div><button class="btn" onclick="printSelectedOrder('+o.id+')">🖨️ Imprimir pedido</button><button class="btn alt" onclick="tgl('+o.id+')">Voltar</button>'}
+function hdr(){var today=new Date().toDateString(),daily=hist.concat(orders).filter(function(o){return o.t.toDateString()===today&&!o.cancel});$("hs").innerHTML='<small>HOJE</small><b>'+daily.length+' pedidos · '+money(daily.reduce(function(total,order){return total+tot(order)},0))+'</b>'}
+async function btConn(){
+if(BC){BT.gatt.disconnect();BC=null;$("pb").className="pbtn";$("pb").textContent="🖨️ Conectar impressora";return false}
+if(!navigator.bluetooth){toast("Bluetooth indisponível neste navegador");return false}
+try{var d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:SV}),s=await d.gatt.connect(),svs=await s.getPrimaryServices(),ch=null;
+for(var i=0;i<svs.length&&!ch;i++){var cs=await svs[i].getCharacteristics();for(var j=0;j<cs.length;j++){if(cs[j].properties.write||cs[j].properties.writeWithoutResponse){ch=cs[j];break}}}
+if(!ch){toast("Não achei canal de impressão");return false}
+BT=d;BC=ch;$("pb").className="pbtn on";$("pb").textContent="🖨️ "+(d.name||"Conectada");toast("Impressora conectada");
+d.addEventListener("gattserverdisconnected",function(){BC=null;$("pb").className="pbtn";$("pb").textContent="🖨️ Conectar impressora"});return true}
+catch(e){toast("Não conectou: "+(e.message||e));return false}}
+async function btPrint(txt){
+if(!BC){await btConn();if(!BC)return false}
+try{var t=txt.normalize("NFD").replace(/[\u0300-\u036f]/g,""),b=[27,64,29,33,0,27,97,0];
+for(var i=0;i<t.length;i++){if(t.charAt(i)=="\x01")b.push(29,33,17);else if(t.charAt(i)=="\x02")b.push(29,33,0);else if(t.charAt(i)=="\x03")b.push(29,33,1);else{var code=t.charCodeAt(i);b.push(code==10||code>=32&&code<=126?code:63)}}
+b.push(29,33,0,27,97,0,10,10,10,10);
+var u=new Uint8Array(b),chunkSize=20;
+for(var p=0;p<u.length;p+=chunkSize){var c=u.slice(p,p+chunkSize);if(BC.properties.writeWithoutResponse){await BC.writeValueWithoutResponse(c);await new Promise(function(r){setTimeout(r,20)})}else await BC.writeValue(c)}
+toast("Enviado para a impressora");return true}catch(e){toast("Erro ao imprimir: "+(e.message||e));return false}}
+function tot(o){return o.itens.reduce(function(s,x){return s+x.p*x.q},0)}
+function C(s,width){var p=Math.max(0,Math.floor((width-s.length)/2));return " ".repeat(p)+s}
+function R(s,width){s=String(s);return " ".repeat(Math.max(0,width-s.length))+s}
+function L(a,b,width){b=String(b);return a+" ".repeat(Math.max(1,width-a.length-b.length))+b}
+function wrap(s,width){var words=s.split(/\s+/),lines=[],line="";words.forEach(function(word){while(word.length>width){if(line){lines.push(line);line=""}lines.push(word.slice(0,width));word=word.slice(width)}if(line&&line.length+1+word.length>width){lines.push(line);line=word}else line+=(line?" ":"")+word});if(line)lines.push(line);return lines}
+function printName(name){var names={"Pastel de carne de sol com queijo":"Pastel carne sol c/ queijo","Pastel de frango com catupiry":"Pastel frango c/ catupiry","Pastel de frango com queijo":"Pastel frango c/ queijo","Pastel de calabresa com queijo":"Pastel calabresa c/ queijo","Pizza brotinho de calabresa":"Pizza calabresa","Pizza brotinho de mussarela":"Pizza mussarela","Pizza brotinho de frango com catupiry":"Pizza frango c/ catupiry"};return names[name]||name.replace(/^Pastel de /i,"Pastel ").replace(/^Pizza brotinho de /i,"Pizza ").replace(/ com /gi," c/ ")}
+function ticketText(o,re){var W=32,D="--------------------------------\n",date=o.t.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"}),time=o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),t="\x01"+C("D&A LANCHE'S",16)+"\n"+C("PEDIDO #"+String(o.id).padStart(3,"0"),16)+"\n"+(re?C("REIMPRESSAO",16)+"\n":"")+"\x02"+C(date,W)+"\n"+C(time,W)+"\n"+D+"\x03";
+o.itens.forEach(function(x){t+="\n"+wrap(x.q+"x "+printName(x.n),W).map(function(line){return R(line,W)}).join("\n")+"\n"});
+return t+D+C("Obrigado!",W)}
+async function send(){
+if(!count()||SENDING)return;
+SENDING=true;$("rev").disabled=true;$("rev").textContent="Enviando para impressão...";
+try{
+if(!BC){var connected=await btConn();if(!connected||!BC)return}
+var data=await api("/api/pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({itens:Object.keys(cart).map(function(i){return{id:Number(i),q:cart[i]}})})});
+var o=pedidoFromApi(data.pedido);orders.unshift(o);seq=Math.max(seq,o.id+1);
+Object.keys(cart).forEach(function(i){var m=P(i);if(m&&m.e!=null)m.e=Math.max(0,m.e-cart[i])});
+cart={};sum();hdr();drawHist();
+await btPrint(ticketText(o,false));
+}catch(e){console.error(e);toast("Erro ao imprimir pedido: "+e.message)}finally{SENDING=false;$("rev").textContent="🖨️ Imprimir pedido";$("rev").disabled=!count()}}
+function printSelectedOrder(id){var o=hist.concat(orders).filter(function(x){return x.id==id})[0];if(o)btPrint(ticketText(o,true))}
+async function cancelOrder(id){if(CF!=id){CF=id;drawHist();return}try{await api("/api/pedidos/"+id+"/cancelar",{method:"POST"});CF=null;await loadData();drawHist();hdr();toast("Pedido cancelado")}catch(e){toast("Erro ao cancelar pedido: "+e.message)}}
+function drawHist(){var all=hist.concat(orders),day=86400000,now=new Date(),st=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+function agg(f){var l=all.filter(function(o){return o.t.getTime()>=f&&!o.cancel});return{n:l.length,v:l.reduce(function(s,o){return s+tot(o)},0)}}
+$("sum").innerHTML=[["Hoje",agg(st)],["Últimos 7 dias",agg(st-6*day)],["Últimos 30 dias",agg(st-29*day)]].map(function(a){return '<div class="sc"><small>'+a[0]+'</small><b>'+a[1].n+' pedidos</b><span>'+money(a[1].v)+'</span></div>'}).join("");
+var q=$("q").value.toLowerCase().replace("#","").trim(),fd=function(o){return o.t.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})},today=now.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});
+var l=all.slice().sort(function(a,b){return b.t-a.t}).filter(function(o){return!q||String(o.id)==q.replace(/^0+/,"")||o.itens.some(function(x){return x.n.toLowerCase().indexOf(q)>=0})}).slice(0,60),days={},keys=[];
+l.forEach(function(o){var k=fd(o);if(!days[k]){days[k]=[];keys.push(k)}days[k].push(o)});
+$("hist").innerHTML=keys.length?keys.map(function(k){var a=days[k],v=a.filter(function(o){return!o.cancel});
+return '<div class="dh"><span>'+(k==today?"Hoje · ":"")+k+'</span><span>'+v.length+' pedidos · '+money(v.reduce(function(s,o){return s+tot(o)},0))+'</span></div>'+a.map(function(o){
+return '<div class="oc"><div class="row" onclick="tgl('+o.id+')" style="cursor:pointer"><span><b>Pedido #'+String(o.id).padStart(3,"0")+(o.cancel?' (CANCELADO)':'')+'</b><br><small style="color:var(--mut)">'+o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+' · '+o.itens.map(function(x){return x.q+"x "+x.n}).join(", ")+'</small></span><span style="white-space:nowrap"><b'+(o.cancel?' style="text-decoration:line-through"':'')+'>'+money(tot(o))+'</b>'+(o.cancel?'':'<button class="rp" onclick="event.stopPropagation();cancelOrder('+o.id+')">'+(CF==o.id?'Confirmar?':'Cancelar')+'</button>')+'</span></div>'+(EX==o.id?det(o):'')+'</div>'}).join("")}).join(""):'<div class="empty">Nenhum pedido encontrado.</div>'}
+function drawProds(){$("prods").innerHTML=MENU.slice().sort(function(a,b){return String(a.updated||"").localeCompare(String(b.updated||""))||a.id-b.id}).map(function(m){return '<div class="pc'+(m.on?'':' off')+'">'+(m.img?'<img class="pc-thumb" src="'+m.img+'" alt="" loading="lazy">':'')+'<b>'+m.n+'</b><small>'+m.c+(m.e!=null?' · estoque: '+m.e:' · sem controle de estoque')+'</small><span class="pr">'+(m.p==null?'Preço a definir':money(m.p))+'</span><label class="sw"><input type="checkbox" '+(m.on?'checked ':'')+'onchange="tog('+m.id+')">'+(m.on?'Ativo':'Desativado')+'</label><button class="ed" onclick="edit('+m.id+')">✎ Editar</button></div>'}).join("")}
+async function tog(id){var m=P(id);try{await api("/api/produtos",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:m.id,n:m.n,c:m.c,d:m.d,p:m.p,e:m.e,on:!m.on})});await loadData();drawProds();drawCats();drawGrid()}catch(e){toast("Erro ao atualizar produto: "+e.message)}}
+function cs(){$("pc").style.display=$("ps").value=="__new"?"block":"none"}
+function showImagePreview(src){var img=$("pimg"),fallback=$("pimgFallback");if(IMAGE_PREVIEW_URL&&src!==IMAGE_PREVIEW_URL){URL.revokeObjectURL(IMAGE_PREVIEW_URL);IMAGE_PREVIEW_URL=null}if(src){img.src=src;img.style.display="block";fallback.style.display="none"}else{img.removeAttribute("src");img.style.display="none";fallback.style.display="";}$("removeProductImageBtn").style.display=src||EID&&P(EID).img?"block":"none"}
+function previewProductImage(input){var file=input.files&&input.files[0];if(!file)return;REMOVE_PRODUCT_IMAGE=false;IMAGE_PREVIEW_URL=URL.createObjectURL(file);showImagePreview(IMAGE_PREVIEW_URL)}
+function clearProductImage(){if(IMAGE_PREVIEW_URL){URL.revokeObjectURL(IMAGE_PREVIEW_URL);IMAGE_PREVIEW_URL=null}$("pi").value="";REMOVE_PRODUCT_IMAGE=true;showImagePreview("")}
+function edit(id){EID=id;var m=id?P(id):{n:"",c:allcats()[0],p:null,on:true,img:null};REMOVE_PRODUCT_IMAGE=false;$("pi").value="";$("pdt").textContent=id?"Editar produto":"Novo produto";$("pn").value=m.n;showImagePreview(m.img);
+$("ps").innerHTML=allcats().map(function(c){return '<option'+(c==m.c?' selected':'')+'>'+c+'</option>'}).join("")+'<option value="__new">+ Nova categoria...</option>';cs();$("pc").value="";
+$("pp").value=m.p==null?"":String(m.p.toFixed(2)).replace(".",",");$("pa").checked=m.on;$("pe").value=m.e==null?"":m.e;pd.showModal()}
+async function saveP(){var n=$("pn").value.trim(),c=$("ps").value=="__new"?$("pc").value.trim():$("ps").value,priceText=$("pp").value.trim(),p=priceText?parseFloat(priceText.replace(",",".")):null;
+if(!n||!c||(priceText&&(isNaN(p)||p<0))){toast("Confira nome, categoria e preço");return}
+var ev=$("pe").value.trim(),e=ev===""?null:parseInt(ev,10);if(ev!==""&&(isNaN(e)||e<0)){toast("Estoque inválido");return}
+var data={n:n,c:c,p:p,e:e,d:EID&&P(EID)?P(EID).d:"",on:$("pa").checked};if(EID){data.id=EID}
+try{var body=new FormData();Object.keys(data).forEach(function(key){body.append(key,data[key])});body.append("remove_image",REMOVE_PRODUCT_IMAGE?"true":"false");if($("pi").files[0])body.append("image",$("pi").files[0]);var result=await api("/api/produtos",{method:EID?"PUT":"POST",body:body}),product=result.produto,index=MENU.findIndex(function(m){return m.id==product.id});if(index<0)MENU.push(product);else MENU[index]=product;NID=Math.max(NID,product.id+1);cat="Todos";$("sr").value="";pd.close();drawProds();drawCats();sum();toast("Produto salvo e cardápio atualizado")}catch(err){toast("Erro ao salvar produto: "+err.message)}}
+</script>
+<script>
+var AUTH=null,CSRF_TOKEN="";
+var authStyle=document.createElement("style");
+authStyle.textContent=`
+#loginScreen{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:auto;padding:28px 18px;background:radial-gradient(ellipse at 12% 12%,#68471b 0,transparent 34%),linear-gradient(135deg,#17130d,#292016 58%,#17130d);color:#241f18}
+.login-shell{display:grid;grid-template-columns:1fr .92fr;width:min(900px,100%);min-height:520px;overflow:hidden;border:1px solid rgba(255,255,255,.16);border-radius:26px;background:#fffdf8;box-shadow:0 28px 90px rgba(0,0,0,.42)}
+.login-brand{position:relative;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;padding:38px;color:#fff;background:linear-gradient(155deg,#30251a,#17130f 76%);isolation:isolate}
+.login-brand:before,.login-brand:after{position:absolute;z-index:-1;content:"";border:1px solid rgba(224,162,27,.2);border-radius:50%}
+.login-brand:before{width:360px;height:360px;right:-170px;top:-150px}
+.login-brand:after{width:280px;height:280px;right:-110px;top:-110px}
+.login-logo{width:66px;height:66px;object-fit:cover;border:2px solid #e0a21b;border-radius:50%;box-shadow:0 0 0 7px rgba(224,162,27,.12)}
+.login-brand-copy{max-width:370px;margin:50px 0}
+.login-eyebrow{display:block;margin-bottom:14px;color:#e8b643;font-size:11px;font-weight:900;letter-spacing:2.2px;text-transform:uppercase}
+.login-brand h1{margin:0 0 14px;font-size:clamp(30px,4vw,43px);line-height:1.08;letter-spacing:-1.3px}
+.login-brand-copy p{margin:0;color:#d4c7b1;font-size:15px;line-height:1.7}
+.login-foot{color:#a99b84;font-size:12px}
+.login-form-panel{display:flex;align-items:center;justify-content:center;padding:42px}
+.login-form-content{width:min(360px,100%)}
+.login-form-content h2{margin:0 0 8px;color:#241f18;font-size:27px;letter-spacing:-.6px}
+.login-subtitle{margin:0 0 28px;color:#766a58;font-size:14px;line-height:1.5}
+#loginForm label{display:block;margin:17px 0 7px;color:#443b2e;font-size:12px;font-weight:900;letter-spacing:.35px}
+#loginForm select,#loginForm input{width:100%;height:50px;margin:0;padding:0 13px;border:1px solid #e5dcc9;border-radius:11px;outline:none;background:#fff;color:#241f18;font:inherit;transition:border-color .15s,box-shadow .15s}
+#loginForm select:focus,#loginForm input:focus{border-color:#c58c16;box-shadow:0 0 0 4px rgba(224,162,27,.16)}
+#loginCredential{letter-spacing:1.5px}
+#loginForm .btn{height:50px;margin-top:24px;border-radius:11px;background:#d99a13;color:#20180b;font-size:15px;box-shadow:0 5px 12px rgba(185,125,0,.2)}
+#loginForm .btn:hover{background:#e5a71f}
+#loginError{min-height:20px;margin-top:12px;color:#a52e1b;font-size:13px;font-weight:700}
+.login-secure{display:flex;align-items:center;gap:8px;margin-top:18px;color:#827764;font-size:12px}
+.auth-badge{display:flex;align-items:center;gap:8px;margin-left:auto}.auth-badge button{border:1px solid var(--gold);background:transparent;color:var(--gold);border-radius:8px;padding:8px;font-weight:800;cursor:pointer}
+.admin-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0}.admin-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}.admin-card small{display:block;color:var(--mut);font-weight:800}.admin-card b{font-size:20px}.admin-note{background:var(--line);padding:12px;border-radius:10px;margin:12px 0}
+@media(max-width:680px){#loginScreen{padding:16px}.login-shell{grid-template-columns:1fr;min-height:0;max-width:460px;border-radius:22px}.login-brand{min-height:190px;padding:24px 26px}.login-logo{width:52px;height:52px}.login-brand-copy{margin:26px 0 0}.login-brand h1{font-size:29px}.login-brand-copy p{font-size:13px}.login-foot{display:none}.login-form-panel{padding:28px 26px 30px}.login-form-content h2{font-size:24px}.login-subtitle{margin-bottom:20px}}
+@media(max-height:700px) and (min-width:681px){#loginScreen{padding:16px}.login-shell{min-height:460px}.login-brand,.login-form-panel{padding:28px}.login-brand-copy{margin:24px 0}}
+`;
+document.head.appendChild(authStyle);
+document.querySelector("header").insertAdjacentHTML("beforeend",'<div class="auth-badge" id="authBadge" style="display:none"><span id="authName"></span><button onclick="logoutApp()">Sair</button></div>');
+document.querySelector("nav.tabs").insertAdjacentHTML("beforeend",'<button id="t5" onclick="go(5)" style="display:none">Administrador</button>');
+var adminView=document.createElement("section");
+adminView.className="view";
+adminView.id="v5";
+adminView.innerHTML='<h2>Painel do administrador</h2><p>Resumo do dia e acesso ao catálogo.</p><div id="adminSummary"></div><button class="btn" onclick="go(4)">Gerenciar produtos e fotos</button>';
+document.querySelector("main").appendChild(adminView);
+var productView=$("v4");
+productView.insertAdjacentHTML("afterbegin",'<button class="btn alt" id="adminBack" style="margin:0 0 12px;display:none" onclick="go(5)">Voltar ao painel</button>');
+
+api=async function(path,options){
+var opts=options||{},method=(opts.method||"GET").toUpperCase(),headers=new Headers(opts.headers||{});
+if(method!=="GET"&&CSRF_TOKEN)headers.set("X-CSRF-Token",CSRF_TOKEN);
+opts.headers=headers;
+var r=await fetch(path,opts),data=await r.json();
+if(!r.ok)throw new Error(data.erro||"Falha ao comunicar com o servidor.");
+return data
+};
+function showLogin(){
+document.querySelector("header").style.display="none";$("authBadge").style.display="none";
+document.querySelector("nav.tabs").style.display="none";document.querySelector("main").style.display="none";$("bar").style.display="none";
+var box=$("loginScreen");
+if(!box){box=document.createElement("section");box.id="loginScreen";document.body.insertBefore(box,document.querySelector("header"))}
+box.innerHTML='<div class="login-shell"><section class="login-brand"><img class="login-logo" src="" alt="D&A Lanche\'s"><div class="login-brand-copy"><span class="login-eyebrow">Sistema de pedidos</span><h1>Bom ter você<br>por aqui.</h1><p>Acesse sua estação para organizar os pedidos com rapidez e manter tudo funcionando em sintonia.</p></div><div class="login-foot">D&A Lanche\'s · Acesso seguro</div></section><section class="login-form-panel"><div class="login-form-content"><span class="login-eyebrow">Bem-vindo</span><h2>Entrar no sistema</h2><p class="login-subtitle">Selecione seu acesso e informe suas credenciais para continuar.</p><form id="loginForm"><label for="loginAccount">TIPO DE ACESSO</label><select id="loginAccount"><option value="employee">Funcionário</option><option value="admin">Administrador</option></select><label id="credentialLabel" for="loginCredential">PIN DO FUNCIONÁRIO</label><input id="loginCredential" type="password" autocomplete="current-password" placeholder="Digite seu PIN" required><button class="btn" type="submit">Entrar</button><div id="loginError" role="alert" aria-live="polite"></div></form><div class="login-secure"><span aria-hidden="true">●</span> Acesso protegido por credenciais</div></div></section></div>';
+box.querySelector(".login-logo").src=document.querySelector("header img").src;
+var select=$("loginAccount");
+select.onchange=function(){var isAdmin=select.value==="admin";$("credentialLabel").textContent=isAdmin?"PIN DO ADMINISTRADOR":"PIN DO FUNCIONÁRIO";$("loginCredential").placeholder=isAdmin?"Digite seu PIN":"Digite seu PIN";$("loginCredential").value=""};
+$("loginForm").onsubmit=async function(event){
+event.preventDefault();$("loginError").textContent="";
+try{AUTH=await api("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({account:select.value,credential:$("loginCredential").value})});CSRF_TOKEN=AUTH.csrf_token;await enterApp()}
+catch(error){$("loginError").textContent=error.message}
+};
+box.style.display="block";$("loginCredential").focus()
+}
+function showApp(){
+var box=$("loginScreen");if(box)box.style.display="none";
+document.querySelector("header").style.display="flex";document.querySelector("nav.tabs").style.display="flex";document.querySelector("main").style.display="block";
+ensureRefreshButton();
+$("authBadge").style.display="flex";$("authName").textContent=AUTH.station_name;
+var isAdmin=AUTH.role==="admin";
+$("bar").style.display="flex";
+$("t1").style.display="";
+$("t3").style.display="";
+$("t4").style.display=isAdmin?"":"none";
+$("t5").style.display=isAdmin?"":"none";
+$("pb").style.display="";
+setPrinterButton(!!BC);
+$("adminBack").style.display=isAdmin?"block":"none";
+}
+async function enterApp(){
+showApp();
+if(navigator.bluetooth&&navigator.bluetooth.getDevices&&localStorage.getItem("da-lanches-printer:"+AUTH.station_id))setPrinterButton(false,true);
+await restorePrinter();await loadData();restoreCart();drawCats();drawGrid();drawHist();hdr();go(1)
+}
+async function startAuthApp(){
+if(location.protocol==="file:"){
+showLogin();
+$("loginError").innerHTML='Esta cópia do arquivo não conecta ao servidor. Abra o sistema pelo Flask: <a href="http://127.0.0.1:5000">http://127.0.0.1:5000</a>.';
+return
+}
+try{
+var r=await fetch("/api/auth/session"),data=await r.json();
+if(!r.ok)throw new Error(data.erro||"Não foi possível iniciar a sessão.");
+CSRF_TOKEN=data.csrf_token;
+if(!data.authenticated){showLogin();return}
+AUTH=data;await enterApp()
+}catch(error){console.error(error);showLogin();toast("Erro ao iniciar: "+error.message)}
+}
+async function go(n){
+[1,3,4,5].forEach(function(i){var v=$("v"+i),t=$("t"+i);if(v)v.className="view"+(n===i?" on":"");if(t)t.className=n===i?"on":""});
+$("bar").style.display=n===1&&AUTH?"flex":"none";
+if(n===1){try{await loadProducts();drawCats();sum()}catch(error){console.error(error);toast("Erro ao atualizar cardápio: "+error.message)}}
+if(n===3)drawHist();
+if(n===4)drawProds();
+if(n===5)await loadAdminSummary()
+}
+async function loadAdminSummary(){
+try{
+var data=await api("/api/admin/resumo"),states=data.impressao_hoje||{};
+$("adminSummary").innerHTML='<div class="admin-cards"><div class="admin-card"><small>Pedidos hoje</small><b>'+data.pedidos_hoje+'</b></div><div class="admin-card"><small>Vendas hoje</small><b>'+money(data.vendas_hoje)+'</b></div><div class="admin-card"><small>Produtos ativos</small><b>'+data.produtos_ativos+' / '+data.produtos_total+'</b></div></div><h3>Impressões de hoje</h3><div class="hint">Aguardando: '+(states.pendente||0)+' · Em andamento: '+(states.imprimindo||0)+' · Impressos: '+(states.impresso||0)+' · Falhas: '+(states.falhou||0)+'</div><h3>Estações</h3><div class="hint">'+data.estacoes.map(function(s){return s.nome+": "+(s.configurada?"PIN configurado":"PIN não configurado")}).join("<br>")+'</div><p class="admin-note">Os pedidos continuam compartilhados. Cada pedido registra a estação que o criou; a impressão fica no aparelho dessa estação.</p>'
+}catch(error){$("adminSummary").innerHTML='<div class="hint">Não foi possível carregar o painel: '+error.message+'</div>'}
+}
+async function logoutApp(){
+try{await api("/api/auth/logout",{method:"POST"})}catch(error){console.error(error)}
+if(BT&&BT.gatt&&BT.gatt.connected)BT.gatt.disconnect();
+cart={};saveCart();AUTH=null;CSRF_TOKEN="";MENU=[];orders=[];BC=null;BT=null;showLogin()
+}
+var PRINTER_CONNECT_PROMISE=null;
+var PRINTER_LISTENERS=new WeakSet();
+var REFRESHING=false;
+window.addEventListener("beforeunload",function(event){
+if(BT&&BC&&BT.gatt&&BT.gatt.connected){
+event.preventDefault();
+event.returnValue=""
+}
+});
+window.addEventListener("keydown",function(event){
+var reloadKey=event.key==="F5"||(event.key.toLowerCase()==="r"&&(event.ctrlKey||event.metaKey));
+if(!reloadKey||!AUTH)return;
+event.preventDefault();
+event.stopPropagation();
+if($("pd").open){toast("Feche o formulário antes de atualizar os dados.");return}
+refreshAppData()
+},true);
+function ensureRefreshButton(){
+if($("refreshDataButton"))return;
+var button=document.createElement("button");
+button.id="refreshDataButton";
+button.className="refresh-data";
+button.type="button";
+button.textContent="↻ Atualizar dados (sem desconectar)";
+button.onclick=function(){refreshAppData()};
+document.querySelector("main").insertBefore(button,document.querySelector("main").firstChild)
+}
+async function refreshAppData(silent){
+if(SENDING){toast("Aguarde a impressão terminar antes de atualizar.");return}
+if(REFRESHING)return;
+REFRESHING=true;
+var refreshButton=$("refreshDataButton");
+if(refreshButton){refreshButton.disabled=true;refreshButton.textContent="Atualizando dados..."}
+try{
+var activeView=document.querySelector(".view.on"),activeTab=activeView?Number(activeView.id.slice(1)):1;
+await loadData();
+if(activeTab===1||activeTab===4)await loadProducts();
+Object.keys(cart).forEach(function(id){
+var product=P(id);
+if(!product||product.p==null){delete cart[id];return}
+if(product.e!=null&&cart[id]>product.e)cart[id]=product.e;
+if(cart[id]<=0)delete cart[id]
+});
+saveCart();
+drawCats();drawGrid();drawHist();hdr();sum();
+if(activeTab===5)await loadAdminSummary();
+if(!silent)toast(" impressora continua conectada.")
+}catch(error){
+console.error(error);
+toast("Não foi possível atualizar os dados: "+error.message)
+}finally{
+REFRESHING=false;
+if(refreshButton){refreshButton.disabled=false;refreshButton.textContent="↻ Atualizar dados (sem desconectar)"}
+}
+}
+window.addEventListener("online",function(){if(AUTH)refreshAppData(true)});
+document.addEventListener("visibilitychange",function(){if(AUTH&&document.visibilityState==="visible")refreshAppData(true)});
+function setPrinterButton(connected,reconnecting){
+var button=$("pb");
+button.className="pbtn"+(connected?" on":"");
+button.textContent=connected?"🖨️ Impressora conectada":reconnecting?"🖨️ Reconectando...":"🖨️ Conectar impressora";
+button.title=connected?"Impressora conectada":reconnecting?"Reconectando à impressora":"Conectar impressora";
+button.setAttribute("aria-label",button.title);
+button.setAttribute("aria-pressed",connected?"true":"false")
+}
+async function connectPrinterDevice(device){
+var server=await device.gatt.connect(),services=await server.getPrimaryServices(),channel=null;
+for(var i=0;i<services.length&&!channel;i++){
+var characteristics=await services[i].getCharacteristics();
+for(var j=0;j<characteristics.length;j++){
+if(characteristics[j].properties.write||characteristics[j].properties.writeWithoutResponse){channel=characteristics[j];break}
+}
+}
+if(!channel){if(device.gatt.connected)device.gatt.disconnect();throw new Error("Não achei canal de impressão nesta impressora.")}
+BT=device;BC=channel;setPrinterButton(true);
+if(!PRINTER_LISTENERS.has(device)){
+device.addEventListener("gattserverdisconnected",function(){
+if(BT===device){BC=null;setPrinterButton(false)}
+});
+PRINTER_LISTENERS.add(device)
+}
+return true
+}
+function beginPrinterConnection(device){
+PRINTER_CONNECT_PROMISE=connectPrinterDevice(device).finally(function(){PRINTER_CONNECT_PROMISE=null});
+return PRINTER_CONNECT_PROMISE
+}
+async function restorePrinter(){
+if(!AUTH||!navigator.bluetooth||!navigator.bluetooth.getDevices)return false;
+var saved=localStorage.getItem("da-lanches-printer:"+AUTH.station_id);
+if(!saved)return false;
+try{
+for(var attempt=0;attempt<3;attempt++){
+var known=await navigator.bluetooth.getDevices(),device=known.find(function(item){return item.id===saved});
+if(device){
+try{return await beginPrinterConnection(device)}
+catch(error){
+if(attempt===2)throw error
+}
+}
+if(attempt<2)await new Promise(function(resolve){setTimeout(resolve,500*(attempt+1))})
+}
+setPrinterButton(false);
+toast("Sessão iniciada. Toque em Conectar impressora para reconectar.");
+return false
+}catch(error){
+console.warn("Impressora salva não reconectou automaticamente:",error);
+setPrinterButton(false);
+toast("Não reconectou automaticamente. Toque em Conectar impressora.");
+return false
+}
+}
+btConn=async function(){
+if(BC){
+if(BT&&BT.gatt.connected)BT.gatt.disconnect();
+BC=null;BT=null;setPrinterButton(false);
+return false
+}
+if(PRINTER_CONNECT_PROMISE)return PRINTER_CONNECT_PROMISE;
+if(!navigator.bluetooth){toast("Este navegador não oferece Bluetooth para impressão.");return false}
+var key="da-lanches-printer:"+AUTH.station_id,saved=localStorage.getItem(key);
+try{
+var device=null;
+if(saved&&navigator.bluetooth.getDevices){
+var known=await navigator.bluetooth.getDevices();
+device=known.find(function(item){return item.id===saved})||null
+}
+if(!device)device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:SV});
+var connected=await beginPrinterConnection(device);
+localStorage.setItem(key,device.id);
+toast(saved&&device.id!==saved?"Impressora desta estação atualizada":"Impressora conectada");
+return connected
+}catch(error){setPrinterButton(false);toast("Não conectou: "+(error.message||error));return false}
+};
+async function send(){
+if(!count()||SENDING)return;
+SENDING=true;$("rev").disabled=true;$("rev").textContent="Salvando pedido...";
+var order=null;
+try{
+if(!BC){var connected=await btConn();if(!connected||!BC)return}
+var result=await api("/api/pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({itens:Object.keys(cart).map(function(i){return{id:Number(i),q:cart[i]}})})});
+order=pedidoFromApi(result.pedido);orders.unshift(order);seq=Math.max(seq,order.id+1);
+Object.keys(cart).forEach(function(i){var product=P(i);if(product&&product.e!=null)product.e=Math.max(0,product.e-cart[i])});
+cart={};saveCart();sum();hdr();drawHist();$("rev").textContent="Iniciando impressão...";
+try{await api("/api/pedidos/"+order.id+"/impressao",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"imprimindo"})});order.impressao_status="imprimindo"}
+catch(error){toast("Pedido salvo, mas não iniciou a impressão: "+error.message);return}
+var printed=await btPrint(ticketText(order,false));
+try{await api("/api/pedidos/"+order.id+"/impressao",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:printed?"impresso":"falhou"})});order.impressao_status=printed?"impresso":"falhou"}
+catch(error){toast("Confira a impressora: não foi possível confirmar o resultado ("+error.message+").")}
+drawHist()
+}catch(error){console.error(error);toast(order?"Pedido salvo; confira a impressão: "+error.message:"Erro ao salvar pedido: "+error.message)}
+finally{SENDING=false;$("rev").textContent="🖨️ Imprimir pedido";$("rev").disabled=!count()}
+}
+function printSelectedOrder(id){
+var order=hist.concat(orders).filter(function(item){return item.id==id})[0];
+if(!order)return;
+if(!["station","admin"].includes(AUTH.role)||order.estacao_id!==AUTH.station_id){toast("Somente o perfil que criou o pedido pode reimprimi-lo.");return}
+btPrint(ticketText(order,true))
+}
+startAuthApp();
+</script></body></html>
