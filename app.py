@@ -10,12 +10,15 @@ from flask import Flask, jsonify, request, send_file, session
 from PIL import Image, ImageOps, UnidentifiedImageError
 from dotenv import load_dotenv
 from werkzeug.exceptions import RequestEntityTooLarge
+from werkzeug.middleware.proxy_fix import ProxyFix
 import database
 from database import get_connection, init_db
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 app = Flask(__name__)
+# Atrás do proxy do Railway: lê o IP real do cliente (X-Forwarded-For).
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 PAGE_PATH = BASE_DIR / "da-lanches-pedidos.html"
 secret_key = os.environ.get("FLASK_SECRET_KEY")
 if not secret_key or secret_key.startswith("replace-with-"):
