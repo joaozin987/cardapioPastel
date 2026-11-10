@@ -231,11 +231,11 @@ body *{visibility:hidden!important}
 #compatDiag strong{display:block;color:#ffd36b;margin-bottom:4px}
 #compatDiagLog{overflow-wrap:anywhere}
 </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dialog-polyfill@0.5.6/dist/dialog-polyfill.css">
-<script src="https://cdn.jsdelivr.net/npm/core-js-bundle@3.45.1/minified.js" onload="window.__diagMark('core-js: carregado')" onerror="window.__diagMark('ERRO ao carregar core-js')"></script>
-<script src="https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.20/dist/fetch.umd.js" onload="window.__diagMark('fetch polyfill: carregado')" onerror="window.__diagMark('ERRO ao carregar fetch polyfill')"></script>
-<script src="https://cdn.jsdelivr.net/npm/regenerator-runtime@0.14.1/runtime.min.js" onload="window.__diagMark('regenerator: carregado')" onerror="window.__diagMark('ERRO ao carregar regenerator')"></script>
-<script src="https://cdn.jsdelivr.net/npm/dialog-polyfill@0.5.6/dist/dialog-polyfill.js" onload="window.__diagMark('dialog polyfill: carregado')" onerror="window.__diagMark('ERRO ao carregar dialog polyfill')"></script>
+<link rel="stylesheet" href="https://unpkg.com/dialog-polyfill@0.5.6/dist/dialog-polyfill.css">
+<script src="https://unpkg.com/core-js-bundle@3.45.1/minified.js" onload="window.__diagMark('core-js: carregado')" onerror="window.__diagMark('ERRO ao carregar core-js')"></script>
+<script src="https://unpkg.com/whatwg-fetch@3.6.20/dist/fetch.umd.js" onload="window.__diagMark('fetch polyfill: carregado')" onerror="window.__diagMark('ERRO ao carregar fetch polyfill')"></script>
+<script src="https://unpkg.com/regenerator-runtime@0.14.1/runtime.min.js" onload="window.__diagMark('regenerator: carregado')" onerror="window.__diagMark('ERRO ao carregar regenerator')"></script>
+<script src="https://unpkg.com/dialog-polyfill@0.5.6/dist/dialog-polyfill.js" onload="window.__diagMark('dialog polyfill: carregado')" onerror="window.__diagMark('ERRO ao carregar dialog polyfill')"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!("showModal" in document.createElement("dialog")) && window.dialogPolyfill) {
@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/babel-standalone@6.26.0/babel.min.js" onload="window.__diagMark('Babel: carregado')" onerror="window.__diagMark('ERRO ao carregar Babel')"></script>
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js" onload="window.__diagMark('Babel: carregado')" onerror="window.__diagMark('ERRO ao carregar Babel')"></script>
 
 
 </head><body>
