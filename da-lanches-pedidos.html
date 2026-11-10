@@ -212,7 +212,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
 <script>
 Babel.registerPreset("ios9", function (babel) {
-  return { presets: [[babel.availablePresets.env, { targets: { ios: "9.3" }, modules: false }]] };
+  return { presets: [[Babel.availablePresets.env, { targets: { ios: "9.3" }, modules: false }]] };
 });
 </script>
 
