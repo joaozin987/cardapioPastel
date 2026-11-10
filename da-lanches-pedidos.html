@@ -70,11 +70,15 @@ header{position:relative}#pb{position:absolute;left:50%;transform:translateX(-50
 @media(max-width:680px){header{display:grid!important;grid-template-columns:52px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:8px;row-gap:10px}header>img{grid-column:1;grid-row:1}header>div:not(.hs):not(.auth-badge){grid-column:2;grid-row:1}header>.auth-badge{grid-column:3;grid-row:1}#pb{position:static;grid-column:1/-1;grid-row:2;justify-self:center;transform:none}}
 @media(min-width:681px) and (max-width:900px){header{display:grid!important;grid-template-columns:52px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:12px;row-gap:10px}header>img{grid-column:1;grid-row:1}header>div:not(.hs):not(.auth-badge){grid-column:2;grid-row:1}header>.auth-badge{grid-column:3;grid-row:1}#pb{position:static;grid-column:1/-1;grid-row:2;justify-self:center;transform:none}}
 @media(max-width:680px){
-header{padding:10px 12px;column-gap:8px}
+header{padding:14px 14px 18px;column-gap:10px;row-gap:14px}
 header h1{font-size:clamp(16px,5vw,20px)}
 header>.auth-badge{gap:5px;font-size:13px}
 header>.auth-badge span{max-width:96px;overflow-wrap:anywhere}
-.tabs{gap:8px;padding:8px;scrollbar-width:thin}
+#pb{width:min(260px,100%);min-height:50px;margin-top:2px;display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border:0;border-radius:14px;background:var(--gold);color:#1c1a17;box-shadow:0 4px 12px rgba(224,162,27,.24);font-size:14px;font-weight:900;letter-spacing:.1px}
+#pb.on{background:#f0b52f;color:#1c1a17;box-shadow:0 4px 14px rgba(224,162,27,.32)}
+#pb:active{transform:scale(.98)}
+#authBadge button{min-height:40px;padding:8px 10px}
+.tabs{gap:8px;margin:8px 10px 0;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 2px 8px rgba(60,40,0,.08);scrollbar-width:thin}
 .tabs button{flex:0 0 auto;min-height:48px;padding:10px 14px}
 main{padding:12px 10px 150px}
 .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -105,9 +109,10 @@ dialog{width:min(460px,calc(100vw - 20px));max-height:92vh;max-height:92dvh;padd
 .pc{min-width:0}
 }
 @media(max-width:380px){
-header{grid-template-columns:44px minmax(0,1fr) auto}
+header{grid-template-columns:44px minmax(0,1fr) auto;padding-left:12px;padding-right:12px}
 header img{width:44px;height:44px}
 header>.auth-badge{flex-direction:column;align-items:flex-end;font-size:12px}
+header>.auth-badge button{min-height:36px}
 .item{padding:8px}
 .item .tile{width:46px;height:46px;font-size:23px}
 .item .pv{font-size:12px;padding:5px 6px}
