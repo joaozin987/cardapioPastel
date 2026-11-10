@@ -472,6 +472,7 @@ AUTH=data;await enterApp()
 }catch(error){window.__diagMark("ERRO na inicialização: "+error.message);console.error(error);showLogin();toast("Erro ao iniciar: "+error.message)}
 }
 async function go(n){
+window.__diagMark("Navegação acionada: aba "+n);
 [1,3,4,5].forEach(function(i){var v=$("v"+i),t=$("t"+i);if(v)v.className="view"+(n===i?" on":"");if(t)t.className=n===i?"on":""});
 $("bar").style.display=n===1&&AUTH?"flex":"none";
 if(n===1){try{await loadProducts();drawCats();sum()}catch(error){console.error(error);toast("Erro ao atualizar cardápio: "+error.message)}}
