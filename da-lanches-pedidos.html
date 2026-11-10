@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js" onload="window.__diagMark('Babel: carregado')" onerror="window.__diagMark('ERRO ao carregar Babel')"></script>
+<script src="https://cdn.jsdelivr.net/npm/babel-standalone@6.26.0/babel.min.js" onload="window.__diagMark('Babel: carregado')" onerror="window.__diagMark('ERRO ao carregar Babel')"></script>
 
 
 </head><body>
@@ -268,7 +268,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <label class="sw"><input type="checkbox" id="pa" checked>Produto ativo (aparece no cardápio)</label>
 <button class="btn" onclick="saveP()">Salvar</button><button class="btn alt" onclick="pd.close()">Cancelar</button></dialog>
 
-<script type="text/babel" data-presets="env">
+<script type="text/babel" data-presets="es2015,stage-3">
 window.__diagMark("Script catálogo: executado");
 var NID=1,MENU=[],CF=null,cart={},orders=[],hist=[],seq=1,cat="Todos",EID=0,SENDING=false,REMOVE_PRODUCT_IMAGE=false,IMAGE_PREVIEW_URL=null;
 var $=function(i){return document.getElementById(i)},pd=$("pd");
@@ -364,7 +364,7 @@ var ev=$("pe").value.trim(),e=ev===""?null:parseInt(ev,10);if(ev!==""&&(isNaN(e)
 var data={n:n,c:c,p:p,e:e,d:EID&&P(EID)?P(EID).d:"",on:$("pa").checked};if(EID){data.id=EID}
 try{var body=new FormData();Object.keys(data).forEach(function(key){body.append(key,data[key])});body.append("remove_image",REMOVE_PRODUCT_IMAGE?"true":"false");if($("pi").files[0])body.append("image",$("pi").files[0]);var result=await api("/api/produtos",{method:EID?"PUT":"POST",body:body}),product=result.produto,index=MENU.findIndex(function(m){return m.id==product.id});if(index<0)MENU.push(product);else MENU[index]=product;NID=Math.max(NID,product.id+1);cat="Todos";$("sr").value="";pd.close();drawProds();drawCats();sum();toast("Produto salvo e cardápio atualizado")}catch(err){toast("Erro ao salvar produto: "+err.message)}}
 </script>
-<script type="text/babel" data-presets="env">
+<script type="text/babel" data-presets="es2015,stage-3">
 window.__diagMark("Script autenticação: executado");
 var AUTH=null,CSRF_TOKEN="";
 var authStyle=document.createElement("style");
@@ -678,7 +678,7 @@ window.addEventListener("load", function () {
     window.__diagMark("Blocos text/babel encontrados: " + blocks.length);
     for (var i = 0; i < blocks.length; i++) {
       try {
-        window.Babel.transform(blocks[i].text || blocks[i].textContent, { presets: ["env"] });
+        window.Babel.transform(blocks[i].text || blocks[i].textContent, { presets: ["es2015", "stage-3"] });
         window.__diagMark("Babel compilou bloco " + (i + 1));
       } catch (error) {
         window.__diagMark("ERRO compilando bloco " + (i + 1) + ": " + error.message);
