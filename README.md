@@ -102,7 +102,25 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
+## Testar conexão Bluetooth no Windows (sem imprimir)
+
+O agente local é uma etapa isolada para identificar e testar conexões com impressoras. Ele não altera o fluxo de pedidos, não se conecta ao Railway e não envia dados para a impressora.
+
+Instale as dependências e inicie o agente no PowerShell:
+
+```powershell
+py -m pip install -r requirements-print-agent.txt
+py windows_print_agent.py
+```
+
+Abra http://127.0.0.1:8765 no computador Windows. A página lista portas COM disponíveis (possíveis conexões Bluetooth clássico/SPP) e permite procurar dispositivos BLE. Selecione uma porta ou dispositivo para testar a conexão. Mantenha o terminal do agente aberto.
+
+O serviço escuta somente em 127.0.0.1 e não deve ser exposto à rede ou à internet. Para Bluetooth clássico, o Windows precisa ter pareado a impressora e criado uma porta COM. BLE e SPP são transportes diferentes; a identificação do modelo e do protocolo de impressão ainda será necessária. A taxa serial inicial é 9600 baud e poderá precisar ser ajustada após confirmar o modelo/manual. Encerrar o processo do agente fecha a conexão.
+
+Esta etapa não imprime e não envia comandos para a impressora. Uma conexão estabelecida não confirma compatibilidade com ESC/POS ou outro protocolo.
+
 ## Estrutura
+
 
 ```text
 catalog-pastel/
