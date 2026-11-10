@@ -215,7 +215,9 @@ body *{visibility:hidden!important}
       return;
     }
     window.__diagMark("ERRO JavaScript: " + (event.message || "erro sem mensagem") +
-      (event.lineno ? " (linha " + event.lineno + ")" : ""));
+      (event.filename ? " | arquivo: " + event.filename : "") +
+      (event.lineno ? " | linha " + event.lineno : "") +
+      (event.colno ? " | coluna " + event.colno : ""));
   }, true);
   window.addEventListener("unhandledrejection", function (event) {
     var reason = event.reason;
@@ -666,4 +668,24 @@ if(!navigator.bluetooth){printWithAirPrint(order,true);return}
 btPrint(ticketText(order,true))
 }
 startAuthApp();
+</script>
+<script id="compatDiagBabelCheck">
+window.addEventListener("load", function () {
+  setTimeout(function () {
+    window.__diagMark("Verificação posterior ao carregamento iniciada");
+    window.__diagMark("Babel disponível: " + (typeof window.Babel));
+    var blocks = document.querySelectorAll('script[type="text/babel"]');
+    window.__diagMark("Blocos text/babel encontrados: " + blocks.length);
+    for (var i = 0; i < blocks.length; i++) {
+      try {
+        window.Babel.transform(blocks[i].text || blocks[i].textContent, { presets: ["env"] });
+        window.__diagMark("Babel compilou bloco " + (i + 1));
+      } catch (error) {
+        window.__diagMark("ERRO compilando bloco " + (i + 1) + ": " + error.message);
+      }
+    }
+    window.__diagMark("startAuthApp global: " + (typeof window.startAuthApp));
+    window.__diagMark("go global: " + (typeof window.go));
+  }, 1500);
+});
 </script></body></html>
