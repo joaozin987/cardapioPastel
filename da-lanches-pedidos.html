@@ -221,6 +221,7 @@ body *{visibility:hidden!important}
     var reason = event.reason;
     window.__diagMark("Promise rejeitada: " + (reason && reason.message ? reason.message : String(reason)));
   });
+  document.addEventListener("DOMContentLoaded", render);
 })();
 </script>
 <style id="compatDiagStyles">
