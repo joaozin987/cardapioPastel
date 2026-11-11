@@ -551,27 +551,11 @@ if(refreshButton){refreshButton.disabled=false;refreshButton.textContent="↻ At
 }
 window.addEventListener("online",function(){if(AUTH)refreshAppData(true)});
 document.addEventListener("visibilitychange",function(){if(AUTH&&document.visibilityState==="visible")refreshAppData(true)});
-function printerBluetoothAvailable(){
-return !!(navigator.bluetooth&&navigator.bluetooth.requestDevice);
-}
-function showPrinterCompatibility(){
-var message="Este Safari não oferece acesso Bluetooth para sites. Nenhuma conexão foi realizada. Use um navegador/dispositivo com suporte compatível ou uma integração nativa para conectar esta impressora.";
-if(window.__diagMark)window.__diagMark("Impressora: Bluetooth indisponível neste navegador (Safari/iOS).");
-toast("Bluetooth indisponível neste Safari. Não foi realizada conexão.");
-var button=$("pb");
-if(button){
-button.className="pbtn";
-button.textContent="🖨️ Bluetooth indisponível";
-button.title=message;
-button.setAttribute("aria-label",message);
-button.setAttribute("aria-pressed","false");
-}
-}
 function setPrinterButton(connected,reconnecting){
-var available=printerBluetoothAvailable(),button=$("pb");
+var button=$("pb");
 button.className="pbtn"+(connected?" on":"");
-button.textContent=connected?"🖨️ Impressora conectada":reconnecting?"🖨️ Reconectando...":available?"🖨️ Conectar impressora":"🖨️ Verificar conexão";
-button.title=connected?"Impressora conectada":reconnecting?"Reconectando à impressora":available?"Conectar impressora":"Verificar compatibilidade Bluetooth deste navegador";
+button.textContent=connected?"🖨️ Impressora conectada":reconnecting?"🖨️ Reconectando...":navigator.bluetooth?"🖨️ Conectar impressora":"🖨️ AirPrint (iPhone/iPad)";
+button.title=connected?"Impressora conectada":reconnecting?"Reconectando à impressora":navigator.bluetooth?"Conectar impressora":"Imprimir pelo menu AirPrint do iPhone/iPad";
 button.setAttribute("aria-label",button.title);
 button.setAttribute("aria-pressed",connected?"true":"false")
 }
@@ -639,7 +623,7 @@ if(BT&&BT.gatt.connected)BT.gatt.disconnect();
 BC=null;BT=null;setPrinterButton(false);
 return false
 }
-if(!printerBluetoothAvailable()){showPrinterCompatibility();return false}
+if(!navigator.bluetooth){setPrinterButton(false);toast("O Safari não conecta à impressora por Bluetooth. O menu AirPrint abre ao imprimir um pedido.");return false}
 if(PRINTER_CONNECT_PROMISE)return PRINTER_CONNECT_PROMISE;
 var key="da-lanches-printer:"+AUTH.station_id,saved=localStorage.getItem(key);
 try{
@@ -659,10 +643,9 @@ async function send(){
 if(!count()||SENDING)return;
 SENDING=true;$("rev").disabled=true;$("rev").textContent="Salvando pedido...";
 var order=null;
-var useAirPrint=false;
+var useAirPrint=!navigator.bluetooth;
 try{
-if(!printerBluetoothAvailable()){showPrinterCompatibility();return}
-if(!BC){var connected=await btConn();if(!connected||!BC)return}
+if(!useAirPrint&&!BC){var connected=await btConn();if(!connected||!BC)return}
 var result=await api("/api/pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({itens:Object.keys(cart).map(function(i){return{id:Number(i),q:cart[i]}})})});
 order=pedidoFromApi(result.pedido);orders.unshift(order);seq=Math.max(seq,order.id+1);
 Object.keys(cart).forEach(function(i){var product=P(i);if(product&&product.e!=null)product.e=Math.max(0,product.e-cart[i])});
@@ -681,7 +664,7 @@ function printSelectedOrder(id){
 var order=hist.concat(orders).filter(function(item){return item.id==id})[0];
 if(!order)return;
 if(!["station","admin"].includes(AUTH.role)||order.estacao_id!==AUTH.station_id){toast("Somente o perfil que criou o pedido pode reimprimi-lo.");return}
-if(!printerBluetoothAvailable()){showPrinterCompatibility();return}
+if(!navigator.bluetooth){printWithAirPrint(order,true);return}
 btPrint(ticketText(order,true))
 }
 startAuthApp();
