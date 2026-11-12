@@ -762,6 +762,12 @@ def cancelar_pedido(pedido_id):
                 if item["produto_id"] is not None:
                     conn.execute("UPDATE produtos SET estoque=estoque+? WHERE id=? AND estoque IS NOT NULL",(item["quantidade"],item["produto_id"]))
             conn.execute("UPDATE pedidos SET cancelado=1,status='cancelado' WHERE id=?",(pedido_id,))
+            now = datetime.now().isoformat(timespec="seconds")
+            conn.execute(
+                "UPDATE print_jobs SET status='falhou',last_error='Pedido cancelado antes da impressão.',"
+                "updated_at=? WHERE pedido_id=? AND status='pendente'",
+                (now, pedido_id),
+            )
         conn.commit(); return jsonify({"ok":True})
     except Exception:
         conn.rollback(); app.logger.exception("Falha ao cancelar pedido"); return jsonify({"erro":"Não foi possível cancelar o pedido."}),500
