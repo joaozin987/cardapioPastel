@@ -179,3 +179,37 @@ test('Android adapter remains ES5 and never persists the receiving code',()=>{
   assert.doesNotMatch(source,/\b(?:const|let|async|await)\b|=>|URLSearchParams|localStorage|sessionStorage/);
   assert(html.indexOf('/static/print-bridge.js')<html.indexOf('<script type="text/babel"'));
 });
+
+test('Enviar código only validates locally and preserves leading zeros without sending or printing', () => {
+  const {c,element,navigations}=app();let requests=0;
+  c.api=()=>{requests++;throw new Error('Code confirmation must not call backend')};
+  element('printBridgeCode').value='0000 1234 5678';
+  assert.equal(c.PrintBridge.confirmCode(),false);
+  assert.equal(element('printBridgeCode').value,'000012345678');
+  assert.equal(element('printBridgeCode')['aria-invalid'],'false');
+  assert.match(element('printBridgeStatus').textContent,/Android será consultado ao imprimir/);
+  assert.doesNotMatch(element('printBridgeStatus').textContent,/conectado|validado pelo Android|000012345678/);
+  assert.equal(requests,0);assert.equal(navigations.length,0);assert.equal(c.orders.length,0);
+});
+
+test('Enviar código flags incomplete/non-ASCII input and does nothing after logout', () => {
+  const {c,element,navigations}=app();let focused=0;
+  element('printBridgeCode').focus=()=>focused++;
+  for(const value of ['', '1234', '1234567890123', '１２３４５６７８９０１２']) {
+    element('printBridgeCode').value=value;
+    assert.equal(c.PrintBridge.confirmCode(),false);
+    assert.equal(element('printBridgeCode')['aria-invalid'],'true');
+    assert.match(element('printBridgeStatus').textContent,/informe os 12 dígitos/);
+  }
+  assert.equal(focused,4);assert.equal(navigations.length,0);
+  c.AUTH=null;element('printBridgeStatus').textContent='';
+  element('printBridgeCode').value='123456789012';c.PrintBridge.confirmCode();
+  assert.equal(element('printBridgeStatus').textContent,'');
+});
+
+test('printer code form supports keyboard submit and labelled, private input', () => {
+  assert.match(html,/<form[^>]*novalidate[^>]*onsubmit="return window\.PrintBridge\?window\.PrintBridge\.confirmCode\(\):false"/);
+  assert.match(html,/<button[^>]*id="printBridgeSubmit"[^>]*type="submit">Enviar código<\/button>/);
+  assert.match(html,/<input[^>]*id="printBridgeCode"[^>]*type="password"[^>]*aria-describedby="printBridgeHint printBridgeStatus printBridgePrivacy"/);
+  assert.match(html,/oninput="this\.removeAttribute\('aria-invalid'\);document\.getElementById\('printBridgeStatus'\)\.textContent=''"/);
+});

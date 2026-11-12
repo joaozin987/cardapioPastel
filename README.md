@@ -197,7 +197,9 @@ aplicativo é necessário no iPad, e os aparelhos não precisam estar na mesma r
 2. Abra **Developer Space → Print From Anywhere / Quick Print** (Print Bridge).
    Mantenha essa tela aberta e anote o código temporário de 12 dígitos.
 3. No iPad, abra o D&A, entre na estação e escolha **Configurar impressora →
-   iPad via Android (Print Bridge)**. Digite o código nessa configuração.
+   iPad via Android**. Digite o código no campo destacado.
+   **Enviar código** confere os 12 dígitos somente na página, sem imprimir nem
+   consultar o Android; a comunicação continua ocorrendo ao imprimir o pedido.
 4. Selecione os itens e toque em **Imprimir pedido**. A página permanece no
    catálogo. Não é necessário tocar em abrir aplicativo no iPad.
 

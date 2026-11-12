@@ -31,7 +31,30 @@ main{max-width:1000px;margin:0 auto;padding:14px 14px 120px}
 .bar b{color:var(--gold);font-size:20px}
 .bar button,.btn{background:var(--gold);color:#1c1a17;border:0;border-radius:10px;padding:14px 20px;font-weight:800;font-size:16px;cursor:pointer}
 .bar button:disabled{opacity:.35}
-.btn:disabled{opacity:.5;cursor:wait}.print-choice{margin-bottom:12px}.print-choice label{font-weight:800}.print-choice small{display:block;color:var(--mut);line-height:1.4}.print-prepared{margin:12px 0;padding:12px;border:2px solid var(--gold);border-radius:10px;background:var(--card)}
+.btn:disabled{opacity:.5;cursor:wait}
+.print-choice{margin:0 0 18px;border:1px solid #eadfc2;border-color:var(--line);border-left:4px solid #e0a21b;border-radius:16px;background:#fffdf6;background:var(--card);box-shadow:0 3px 12px rgba(60,40,0,.06)}
+.print-choice summary{padding:18px 20px;min-height:64px;font-size:18px;font-weight:800;cursor:pointer;line-height:1.3}
+.printer-subtitle{display:block;margin:5px 0 0;font-size:13px;font-weight:400;color:#7d705a;color:var(--mut)}
+.printer-settings-body{padding:20px;border-top:1px solid #eadfc2;border-color:var(--line)}
+.print-choice label{display:block;margin:0 0 8px;font-size:16px;font-weight:800}
+.print-choice select{margin:0;padding:14px;min-height:56px;border:2px solid #eadfc2;border-color:var(--line);background:#faf3e0;background:var(--bg);color:#1c1a17;color:var(--ink);font-size:17px;font-weight:700;border-radius:10px}
+.printer-method-help{margin:10px 0 0;font-size:14px;line-height:1.5;color:#7d705a;color:var(--mut)}
+.printer-code-panel{margin-top:20px;padding-top:20px;border-top:1px solid #eadfc2;border-color:var(--line)}
+.print-choice .printer-code-label{margin-bottom:6px;font-size:20px}
+.print-choice small{display:block;font-size:14px;color:#7d705a;color:var(--mut);line-height:1.5}
+.printer-code-form{margin:14px 0 0}
+.printer-code-row{display:-webkit-flex;display:flex;align-items:stretch}
+#printBridgeCode{display:block;flex:1 1 0%;min-width:0;width:100%;height:60px;margin:0;padding:14px 12px;border:2px solid #b97d00;border-radius:10px;background:#faf3e0;background:var(--bg);color:#1c1a17;color:var(--ink);font:700 26px/1.2 Consolas,"Courier New",monospace;letter-spacing:3px;text-align:center}
+#printBridgeCode::placeholder{font-size:22px;letter-spacing:2px;color:#7d705a;color:var(--mut);opacity:1}
+.printer-code-submit{flex:0 0 auto;min-height:60px;margin-left:12px;padding:14px 22px;border:0;border-radius:10px;background:#e0a21b;color:#1c1a17;font:800 16px/1.3 "Trebuchet MS","Segoe UI",Arial,sans-serif;cursor:pointer}
+.printer-code-submit:hover{background:#efb533}
+.print-choice summary:focus,.print-choice select:focus,#printBridgeCode:focus,.printer-code-submit:focus{outline:3px solid #b97d00;outline-offset:3px}
+#printBridgeCode[aria-invalid="true"]{border-color:#b8321f;border-color:var(--red)}
+.printer-feedback{margin:12px 0 0;font-size:14px;font-weight:700;line-height:1.5;color:#7d705a;color:var(--mut)}
+.printer-feedback:empty{display:none}
+.printer-feedback-error{color:#b8321f;color:var(--red)}
+@media(max-width:520px){.print-choice summary,.printer-settings-body{padding:16px}.printer-code-row{display:block}.printer-code-submit{width:100%;min-height:54px;margin:10px 0 0}#printBridgeCode{font-size:24px;letter-spacing:2px}}
+.print-prepared{margin:12px 0;padding:12px;border:2px solid var(--gold);border-radius:10px;background:var(--card)}
 dialog{border:3px solid var(--ink);border-radius:16px;background:var(--card);color:var(--ink);width:min(460px,94vw);max-height:92vh;padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.55)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
@@ -205,7 +228,28 @@ document.addEventListener("DOMContentLoaded", function () {
 <div class="toast" id="toast"></div>
 <main>
 <section class="print-prepared" id="legacyPrintSaved" style="display:none"><p id="legacyPrintMessage" role="status" aria-live="polite"></p><button class="btn" id="legacyPrintOpen" type="button" disabled>Imprimir pedido salvo</button></section>
-<section class="view on" id="v1"><details id="printerSettings" class="print-choice"><summary>Configurar impressora</summary><label for="printDestination">Método de impressão</label><select id="printDestination" onchange="changePrintDestination()"><option value="simple_bluetooth">Simple Bluetooth Printer</option><option value="web_bluetooth">Web Bluetooth</option><option value="print_bridge">iPad via Android (Print Bridge)</option></select><p id="printDestinationHelp">O botão Imprimir pedido salva e solicita a impressão automaticamente no aplicativo.</p><div id="printBridgeSettings" style="display:none"><label for="printBridgeCode">Código de 12 dígitos do Android</label><input id="printBridgeCode" type="password" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="Código do Print From Anywhere"><small>Mantenha essa tela aberta no Android e a impressora conectada. O código fica somente nesta página; digite novamente se recarregar.</small></div><p id="printBridgeStatus" role="status" aria-live="polite"></p></details><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
+<section class="view on" id="v1">
+<details id="printerSettings" class="print-choice">
+<summary>Configurar impressora<span class="printer-subtitle">Escolha o método de impressão e configure o aparelho.</span></summary>
+<div class="printer-settings-body">
+<label for="printDestination">Método de impressão</label>
+<select id="printDestination" aria-describedby="printDestinationHelp" onchange="changePrintDestination()"><option value="simple_bluetooth">Simple Bluetooth Printer</option><option value="web_bluetooth">Web Bluetooth</option><option value="print_bridge">iPad via Android</option></select>
+<p id="printDestinationHelp" class="printer-method-help">O botão Imprimir pedido salva e solicita a impressão automaticamente no aplicativo.</p>
+<div id="printBridgeSettings" class="printer-code-panel" style="display:none">
+<label for="printBridgeCode" class="printer-code-label">Código de 12 dígitos do Android</label>
+<small id="printBridgeHint">Digite os 12 dígitos exibidos em Print From Anywhere no Android. Mantenha essa tela aberta e a impressora conectada.</small>
+<form class="printer-code-form" novalidate onsubmit="return window.PrintBridge?window.PrintBridge.confirmCode():false">
+<div class="printer-code-row">
+<input id="printBridgeCode" type="password" inputmode="numeric" autocomplete="off" maxlength="17" aria-describedby="printBridgeHint printBridgeStatus printBridgePrivacy" placeholder="0000 0000 0000" oninput="this.removeAttribute('aria-invalid');document.getElementById('printBridgeStatus').textContent=''">
+<button id="printBridgeSubmit" class="printer-code-submit" type="submit">Enviar código</button>
+</div>
+<p id="printBridgeStatus" class="printer-feedback" role="status" aria-live="polite"></p>
+</form>
+<small id="printBridgePrivacy" style="margin-top:10px">O código fica somente nesta página. Ao recarregar ou sair, informe novamente.</small>
+</div>
+</div>
+</details>
+<input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
 <section class="view" id="v3"><div class="hint">Toque em um pedido para ver as informações, imprimir ou cancelar.</div><div class="sums" id="sum"></div><input type="text" id="q" placeholder="Buscar pedido pelo número ou produto" oninput="drawHist()"><div id="hist"></div></section>
 <section class="view" id="v4"><button class="btn" style="margin:0 0 12px" onclick="edit(0)">+ Adicionar novo produto</button><div class="grid" id="prods"></div></section>
 </main>

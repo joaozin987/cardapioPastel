@@ -4,7 +4,23 @@
   function notice(text) {
     if (context && context.onMessage) context.onMessage(text);
     var status = global.document.getElementById('printBridgeStatus');
-    if (status) status.textContent = text;
+    if (status) { status.textContent = text; status.className = 'printer-feedback'; }
+  }
+  function confirmCode() {
+    if (!context || !context.getAuth()) return false;
+    var input = global.document.getElementById('printBridgeCode');
+    var code = input.value.replace(/\s/g, '');
+    var valid = /^[0-9]{12}$/.test(code);
+    input.setAttribute('aria-invalid', valid ? 'false' : 'true');
+    if (valid) {
+      input.value = code;
+      notice('Código informado nesta página. O Android será consultado ao imprimir o pedido.');
+    } else {
+      notice('Confira o código: informe os 12 dígitos exibidos no Android.');
+      global.document.getElementById('printBridgeStatus').className += ' printer-feedback-error';
+      input.focus();
+    }
+    return false;
   }
   function print(order, reprint) {
     if (busy || !context || !order || !context.getAuth() || context.getOrder(order.id) !== order || !context.canPrint(order, 'simple_bluetooth')) return false;
@@ -36,6 +52,7 @@
   }
   global.PrintBridge = {
     configure: function (options) { context = options; generation++; },
+    confirmCode: confirmCode,
     print: print,
     reset: function () { generation++; }
   };
