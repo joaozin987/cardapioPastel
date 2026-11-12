@@ -14,8 +14,8 @@ Firmware inicial para ESP32 clássico (ex.: ESP32-WROOM-32 / DevKit V1), com Wi-
 
 - O firmware procura o nome BLE exato `KPrinter_a4f1` e seleciona a primeira característica GATT gravável. Isso é uma heurística de descoberta, não uma confirmação do protocolo da LT-8359.
 - O relatório da impressora informa `BT, USB PRINT`, mas ainda não confirma BLE GATT, UUIDs, tamanho de pacote, codificação ESC/POS nem se a primeira característica gravável é o canal de impressão. Se a LT-8359 usar Bluetooth clássico SPP, este firmware BLE não será compatível; será necessário adaptar para SPP com um ESP32 que suporte Bluetooth clássico.
-- O envio em blocos de 20 bytes é conservador para BLE. A confirmação HTTP indica que os bytes foram aceitos pela característica GATT; não confirma que o mecanismo imprimiu papel.
-- O código usa `setInsecure()` somente para teste de bancada e, portanto, NÃO deve ser colocado em operação com o token real enquanto TLS não estiver validado. Antes de uso real, substituir por `setCACert()` com a CA raiz correta do certificado HTTPS do servidor.
+- O firmware mantém a conexão BLE antes de reservar um pedido; se a impressora estiver desligada ou fora de alcance, o trabalho continua aguardando na fila. O envio em blocos de 20 bytes é conservador para BLE. A confirmação HTTP indica que os bytes foram aceitos pela característica GATT; não confirma que o mecanismo imprimiu papel.
+- A conexão HTTPS valida o certificado usando a raiz ISRG Root X1 incorporada ao firmware. Se o certificado/CA apresentado pelo Railway mudar, atualize a raiz e valide novamente antes de operar.
 - Uma queda após o envio e antes da confirmação pode gerar reimpressão duplicada (entrega at-least-once).
 
 ## API
