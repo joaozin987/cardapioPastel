@@ -1,5 +1,7 @@
 from pathlib import Path
+from contextlib import closing
 import sqlite3
+from tempfile import NamedTemporaryFile
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "instance" / "da_lanches.db"
@@ -45,6 +47,26 @@ def get_connection():
 def init_db():
     conn = get_connection()
     try:
+        order_columns = {row["name"] for row in conn.execute("PRAGMA table_info(pedidos)")}
+        if order_columns and "impressao_destino" not in order_columns:
+            conn.execute("BEGIN IMMEDIATE")
+            order_columns = {row["name"] for row in conn.execute("PRAGMA table_info(pedidos)")}
+            if "impressao_destino" not in order_columns:
+                with NamedTemporaryFile(prefix=f"{DB_PATH.stem}.before-impressao-destino-",
+                                        suffix=".db", dir=DB_PATH.parent, delete=False) as backup_file:
+                    backup_path = Path(backup_file.name)
+                try:
+                    # Outra conexão lê o snapshot enquanto esta impede novas escritas.
+                    with closing(sqlite3.connect(DB_PATH)) as source, closing(sqlite3.connect(backup_path)) as backup:
+                        source.backup(backup)
+                except Exception:
+                    backup_path.unlink(missing_ok=True)
+                    raise
+                conn.execute(
+                    "ALTER TABLE pedidos ADD COLUMN impressao_destino TEXT NOT NULL DEFAULT 'simple_bluetooth' "
+                    "CHECK(impressao_destino IN ('padrao','simple_bluetooth','web_bluetooth','airprint'))"
+                )
+            conn.commit()
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS categorias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,6 +94,8 @@ def init_db():
             cancelado INTEGER NOT NULL DEFAULT 0,
             data_criacao TEXT NOT NULL DEFAULT (datetime('now','localtime')),
             estacao_id TEXT NOT NULL DEFAULT 'station-1',
+            impressao_destino TEXT NOT NULL DEFAULT 'simple_bluetooth'
+                CHECK(impressao_destino IN ('padrao','simple_bluetooth','web_bluetooth','airprint')),
             impressao_status TEXT NOT NULL DEFAULT 'pendente',
             impressao_atualizada_em TEXT
         );

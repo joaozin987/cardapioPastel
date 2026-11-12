@@ -31,6 +31,7 @@ main{max-width:1000px;margin:0 auto;padding:14px 14px 120px}
 .bar b{color:var(--gold);font-size:20px}
 .bar button,.btn{background:var(--gold);color:#1c1a17;border:0;border-radius:10px;padding:14px 20px;font-weight:800;font-size:16px;cursor:pointer}
 .bar button:disabled{opacity:.35}
+.btn:disabled{opacity:.5;cursor:wait}.print-choice{margin-bottom:12px}.print-choice label{font-weight:800}.print-choice small{display:block;color:var(--mut);line-height:1.4}.print-prepared{margin:12px 0;padding:12px;border:2px solid var(--gold);border-radius:10px;background:var(--card)}
 dialog{border:3px solid var(--ink);border-radius:16px;background:var(--card);color:var(--ink);width:min(460px,94vw);max-height:92vh;padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.55)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
@@ -203,11 +204,12 @@ document.addEventListener("DOMContentLoaded", function () {
 <nav class="tabs"><button id="t1" class="on" onclick="go(1)">Catálogo</button><button id="t3" onclick="go(3)">Histórico</button><button id="t4" onclick="go(4)">Estoque</button></nav>
 <div class="toast" id="toast"></div>
 <main>
-<section class="view on" id="v1"><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
+<section class="print-prepared" id="legacyPrintSaved" style="display:none"><p id="legacyPrintMessage" role="status" aria-live="polite"></p><button class="btn" id="legacyPrintOpen" type="button" disabled>Imprimir pedido salvo</button></section>
+<section class="view on" id="v1"><details id="printerSettings" class="print-choice"><summary>Configurar impressora</summary><label for="printDestination">Método de impressão</label><select id="printDestination" onchange="changePrintDestination()"><option value="simple_bluetooth">Simple Bluetooth Printer</option><option value="web_bluetooth">Web Bluetooth</option><option value="airprint">AirPrint</option></select><p id="printDestinationHelp">O botão Imprimir pedido salva e solicita a impressão automaticamente no aplicativo.</p></details><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
 <section class="view" id="v3"><div class="hint">Toque em um pedido para ver as informações, imprimir ou cancelar.</div><div class="sums" id="sum"></div><input type="text" id="q" placeholder="Buscar pedido pelo número ou produto" oninput="drawHist()"><div id="hist"></div></section>
 <section class="view" id="v4"><button class="btn" style="margin:0 0 12px" onclick="edit(0)">+ Adicionar novo produto</button><div class="grid" id="prods"></div></section>
 </main>
-<div class="bar" id="bar"><div><div id="n">0 itens</div><b id="tot">R$ 0,00</b></div><button id="rev" disabled onclick="send()">🖨️ Imprimir pedido</button></div>
+<div class="bar" id="bar"><div><div id="n">0 itens</div><b id="tot">R$ 0,00</b></div><button id="rev" type="button" disabled onclick="send()">🖨️ Imprimir pedido</button></div>
 
 
 <dialog id="pd"><h2 style="margin:0 0 6px" id="pdt">Produto</h2>
@@ -218,6 +220,9 @@ document.addEventListener("DOMContentLoaded", function () {
 <label class="sw"><input type="checkbox" id="pa" checked>Produto ativo (aparece no cardápio)</label>
 <button class="btn" onclick="saveP()">Salvar</button><button class="btn alt" onclick="pd.close()">Cancelar</button></dialog>
 
+<script src="/static/ticket-text.js"></script>
+<script src="/static/simple-bluetooth-printer.js"></script>
+<script src="/static/legacy-printers.js"></script>
 <script type="text/babel" data-presets="es2015,stage-3">
 
 var NID=1,MENU=[],CF=null,cart={},orders=[],hist=[],seq=1,cat="Todos",EID=0,SENDING=false,REMOVE_PRODUCT_IMAGE=false,IMAGE_PREVIEW_URL=null;
@@ -225,7 +230,7 @@ var $=function(i){return document.getElementById(i)},pd=$("pd");
 var money=function(v){return "R$ "+v.toFixed(2).replace(".",",")};
 async function api(path,options){var r=await fetch(path,options||{}),data=await r.json();if(!r.ok)throw new Error(data.erro||"Falha ao comunicar com o servidor.");return data}
 function pedidoFromApi(o){o.t=new Date(String(o.t).replace(" ","T"));return o}
-async function loadData(){var data=await api("/api/dados");MENU=data.produtos;orders=data.pedidos.map(pedidoFromApi);hist=[];NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1);seq=orders.reduce(function(n,o){return Math.max(n,o.id+1)},1)}
+async function loadData(){resetPreparedPrints();var data=await api("/api/dados");MENU=data.produtos;orders=data.pedidos.map(pedidoFromApi);hist=[];NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1);seq=orders.reduce(function(n,o){return Math.max(n,o.id+1)},1)}
 async function loadProducts(){var data=await api("/api/produtos");MENU=data.produtos;NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1)}
 async function startApp(){try{await loadData();drawCats();drawGrid();drawHist();hdr()}catch(e){console.error(e);toast("Erro ao carregar o banco: "+e.message)}}
 function P(id){return MENU.filter(function(m){return m.id==id})[0]}
@@ -242,18 +247,18 @@ function drawGrid(){$("grid").innerHTML=MENU.filter(function(m){return m.on&&(ca
 function chg(id,d){var pm=P(id);if(d>0&&pm.p==null){toast("Defina o preço do produto antes de vender");return}if(d>0&&pm.e!=null&&(cart[id]||0)>=pm.e){toast("Sem estoque");return}cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];saveCart();sum()}
 function total(){return Object.keys(cart).reduce(function(s,i){return s+P(i).p*cart[i]},0)}
 function count(){return Object.keys(cart).reduce(function(s,i){return s+cart[i]},0)}
-function sum(){$("n").textContent=count()+(count()==1?" item":" itens");$("tot").textContent=money(total());$("rev").disabled=!count();drawGrid()}
+function sum(){$("n").textContent=count()+(count()==1?" item":" itens");$("tot").textContent=money(total());$("rev").disabled=(!count()&&!canPrintSavedOrder(getSavedOrder(LAST_SAVED_ID)))||SENDING||PRINT_PREPARING;$("rev").textContent=count()?"🖨️ Imprimir pedido":LAST_SAVED_ID?"🖨️ Reimprimir pedido #"+LAST_SAVED_ID:"🖨️ Imprimir pedido";drawGrid()}
 var CC={"Pastéis":"#e0a21b","Coxinhas":"#e8883a","Pizzas":"#d9503f","Bebidas":"#3a9ad9"},EM={"Pastéis":"🥟","Coxinhas":"🍗","Pizzas":"🍕","Bebidas":"🥤"};
 function cc(c){return CC[c]||"#9a8a6a"}function em(m){return m.n.indexOf("Suco")==0?"🍊":(EM[m.c]||"🍽️")}
 var EX=null;
 function tgl(id){EX=EX==id?null:id;drawHist()}
 function det(o){var h='<div class="dt"><div class="dl"><span>Pedido #'+String(o.id).padStart(3,"0")+'</span><span>'+o.t.toLocaleDateString("pt-BR")+' '+o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'</span></div>';
 o.itens.forEach(function(x){h+='<div class="dl"><span>'+x.q+'x '+x.n+'</span><span>'+money(x.p)+' cada → <b>'+money(x.q*x.p)+'</b></span></div>'});
-var printLabels={pendente:"Na fila",imprimindo:"Enviando",impresso:"Impresso",falhou:"Falha na impressão"};
-return h+'<div class="dl"><span>Situação</span><span>'+(o.cancel?'Cancelado':o.pronto?'Entregue':'Em preparo')+'</span></div><div class="dl"><span>Impressão</span><span>'+(printLabels[o.impressao_status]||"Não informado")+'</span></div><div class="dl tt"><span>Total</span><span>'+money(tot(o))+'</span></div></div><button class="btn" onclick="printSelectedOrder('+o.id+')">🖨️ Imprimir pedido</button><button class="btn alt" onclick="tgl('+o.id+')">Voltar</button>'}
+var printLabels={pendente:"Sem confirmação",imprimindo:"Enviando",impresso:"Impresso",falhou:"Falha na impressão"};
+return h+'<div class="dl"><span>Situação</span><span>'+(o.cancel?'Cancelado':o.pronto?'Entregue':'Em preparo')+'</span></div><div class="dl"><span>Destino</span><span>'+printDestinationLabel(o.impressao_destino)+'</span></div><div class="dl"><span>Impressão</span><span>'+(o.impressao_status==="pendente"&&printDestinationOf(o)!=="padrao"?"Aguardando impressão no aparelho":printLabels[o.impressao_status]||"Não informado")+'</span></div><div class="dl tt"><span>Total</span><span>'+money(tot(o))+'</span></div></div><button class="btn alt" type="button" onclick="tgl('+o.id+')">Voltar</button>'}
 function hdr(){var today=new Date().toDateString(),daily=hist.concat(orders).filter(function(o){return o.t.toDateString()===today&&!o.cancel});$("hs").innerHTML='<small>HOJE</small><b>'+daily.length+' pedidos · '+money(daily.reduce(function(total,order){return total+tot(order)},0))+'</b>'}
 function tot(o){return o.itens.reduce(function(s,x){return s+x.p*x.q},0)}
-async function cancelOrder(id){if(CF!=id){CF=id;drawHist();return}try{await api("/api/pedidos/"+id+"/cancelar",{method:"POST"});CF=null;await loadData();drawHist();hdr();toast("Pedido cancelado")}catch(e){toast("Erro ao cancelar pedido: "+e.message)}}
+async function cancelOrder(id){if(CF!=id){CF=id;drawHist();return}resetPreparedPrints();try{await api("/api/pedidos/"+id+"/cancelar",{method:"POST"});CF=null;await loadData();drawHist();hdr();toast("Pedido cancelado")}catch(e){toast("Erro ao cancelar pedido: "+e.message)}}
 function drawHist(){var all=hist.concat(orders),day=86400000,now=new Date(),st=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
 function agg(f){var l=all.filter(function(o){return o.t.getTime()>=f&&!o.cancel});return{n:l.length,v:l.reduce(function(s,o){return s+tot(o)},0)}}
 $("sum").innerHTML=[["Hoje",agg(st)],["Últimos 7 dias",agg(st-6*day)],["Últimos 30 dias",agg(st-29*day)]].map(function(a){return '<div class="sc"><small>'+a[0]+'</small><b>'+a[1].n+' pedidos</b><span>'+money(a[1].v)+'</span></div>'}).join("");
@@ -262,7 +267,7 @@ var l=all.slice().sort(function(a,b){return b.t-a.t}).filter(function(o){return!
 l.forEach(function(o){var k=fd(o);if(!days[k]){days[k]=[];keys.push(k)}days[k].push(o)});
 $("hist").innerHTML=keys.length?keys.map(function(k){var a=days[k],v=a.filter(function(o){return!o.cancel});
 return '<div class="dh"><span>'+(k==today?"Hoje · ":"")+k+'</span><span>'+v.length+' pedidos · '+money(v.reduce(function(s,o){return s+tot(o)},0))+'</span></div>'+a.map(function(o){
-return '<div class="oc"><div class="row" onclick="tgl('+o.id+')" style="cursor:pointer"><span><b>Pedido #'+String(o.id).padStart(3,"0")+(o.cancel?' (CANCELADO)':'')+'</b><br><small style="color:var(--mut)">'+o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+' · '+o.itens.map(function(x){return x.q+"x "+x.n}).join(", ")+'</small></span><span style="white-space:nowrap"><b'+(o.cancel?' style="text-decoration:line-through"':'')+'>'+money(tot(o))+'</b>'+(o.cancel?'':'<button class="rp" onclick="event.stopPropagation();cancelOrder('+o.id+')">'+(CF==o.id?'Confirmar?':'Cancelar')+'</button>')+'</span></div>'+(EX==o.id?det(o):'')+'</div>'}).join("")}).join(""):'<div class="empty">Nenhum pedido encontrado.</div>'}
+return '<div class="oc"><div class="row" onclick="tgl('+o.id+')" style="cursor:pointer"><span><b>Pedido #'+String(o.id).padStart(3,"0")+(o.cancel?' (CANCELADO)':'')+'</b><br><small style="color:var(--mut)">'+o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+' · '+o.itens.map(function(x){return x.q+"x "+x.n}).join(", ")+'</small></span><span style="white-space:nowrap"><b'+(o.cancel?' style="text-decoration:line-through"':'')+'>'+money(tot(o))+'</b>'+(o.cancel?'':'<button class="rp" onclick="event.stopPropagation();cancelOrder('+o.id+')">'+(CF==o.id?'Confirmar?':'Cancelar')+'</button>')+'</span></div>'+orderPrintButton(o)+(EX==o.id?det(o):'')+'</div>'}).join("")}).join(""):'<div class="empty">Nenhum pedido encontrado.</div>'}
 function drawProds(){$("prods").innerHTML=MENU.slice().sort(function(a,b){return String(a.updated||"").localeCompare(String(b.updated||""))||a.id-b.id}).map(function(m){return '<div class="pc'+(m.on?'':' off')+'">'+(m.img?'<img class="pc-thumb" src="'+m.img+'" alt="" loading="lazy">':'')+'<b>'+m.n+'</b><small>'+m.c+(m.e!=null?' · estoque: '+m.e:' · sem controle de estoque')+'</small><span class="pr">'+(m.p==null?'Preço a definir':money(m.p))+'</span><label class="sw"><input type="checkbox" '+(m.on?'checked ':'')+'onchange="tog('+m.id+')">'+(m.on?'Ativo':'Desativado')+'</label><button class="ed" onclick="edit('+m.id+')">✎ Editar</button></div>'}).join("")}
 async function tog(id){var m=P(id);try{await api("/api/produtos",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:m.id,n:m.n,c:m.c,d:m.d,p:m.p,e:m.e,on:!m.on})});await loadData();drawProds();drawCats();drawGrid()}catch(e){toast("Erro ao atualizar produto: "+e.message)}}
 function cs(){$("pc").style.display=$("ps").value=="__new"?"block":"none"}
@@ -332,6 +337,7 @@ if(!r.ok)throw new Error(data.erro||"Falha ao comunicar com o servidor.");
 return data
 };
 function showLogin(){
+LAST_SAVED_ID=null;LOGGING_OUT=false;
 
 document.querySelector("header").style.display="none";$("authBadge").style.display="none";
 document.querySelector("nav.tabs").style.display="none";document.querySelector("main").style.display="none";$("bar").style.display="none";
@@ -366,6 +372,8 @@ $("adminBack").style.display=isAdmin?"block":"none";
 async function enterApp(){
 
 showApp();
+try{var chosen=localStorage.getItem("da-lanches-printer:"+AUTH.station_id);$("printDestination").value=["simple_bluetooth","web_bluetooth","airprint"].indexOf(chosen)!==-1?chosen:"simple_bluetooth"}catch(error){$("printDestination").value="simple_bluetooth"}
+setPrinterButton(false);
 await loadData();restoreCart();drawCats();drawGrid();drawHist();hdr();go(1)
 }
 async function startAuthApp(){
@@ -403,12 +411,14 @@ $("adminSummary").innerHTML='<div class="admin-cards"><div class="admin-card"><s
 }catch(error){$("adminSummary").innerHTML='<div class="hint">Não foi possível carregar o painel: '+error.message+'</div>'}
 }
 async function logoutApp(){
+LOGGING_OUT=true;SAVE_REQUEST=null;SENDING=false;resetPreparedPrints();
+$("printDestination").disabled=false;
 try{await api("/api/auth/logout",{method:"POST"})}catch(error){console.error(error)}
 cart={};saveCart();AUTH=null;CSRF_TOKEN="";MENU=[];orders=[];showLogin()
 }
 var REFRESHING=false;
 window.addEventListener("keydown",function(event){
-var reloadKey=event.key==="F5"||(event.key.toLowerCase()==="r"&&(event.ctrlKey||event.metaKey));
+var key=event.key||"",reloadKey=key==="F5"||(key.toLowerCase()==="r"&&(event.ctrlKey||event.metaKey));
 if(!reloadKey||!AUTH)return;
 event.preventDefault();
 event.stopPropagation();
@@ -428,6 +438,7 @@ document.querySelector("main").insertBefore(button,document.querySelector("main"
 async function refreshAppData(silent){
 if(SENDING){toast("Aguarde a impressão terminar antes de atualizar.");return}
 if(REFRESHING)return;
+resetPreparedPrints();
 REFRESHING=true;
 var refreshButton=$("refreshDataButton");
 if(refreshButton){refreshButton.disabled=true;refreshButton.textContent="Atualizando dados..."}
@@ -455,40 +466,89 @@ if(refreshButton){refreshButton.disabled=false;refreshButton.textContent="↻ At
 }
 window.addEventListener("online",function(){if(AUTH)refreshAppData(true)});
 document.addEventListener("visibilitychange",function(){if(AUTH&&document.visibilityState==="visible")refreshAppData(true)});
+var PRINT_PREPARING=false,PRINT_PREPARATION=0,SAVE_REQUEST=null,LAST_SAVED_ID=null,LOGGING_OUT=false;
+function printDestinationOf(order){return order.impressao_destino&&order.impressao_destino!=="padrao"?order.impressao_destino:"simple_bluetooth"}
+function printDestinationLabel(destination){return {simple_bluetooth:"SimpleBluetoothPrinter",web_bluetooth:"Web Bluetooth",airprint:"AirPrint"}[destination||"padrao"]||"Não informado"}
+function getSavedOrder(id){return hist.concat(orders).filter(function(order){return order.id==id})[0]}
+function canPrintSavedOrder(order,destination){return !!(!LOGGING_OUT&&AUTH&&order&&["station","admin"].indexOf(AUTH.role)!==-1&&order.estacao_id===AUTH.station_id&&!order.cancel&&(!destination||printDestinationOf(order)===destination))}
+function resetPreparedPrints(){
+PRINT_PREPARATION++;PRINT_PREPARING=false;
+if(window.SimpleBluetoothPrinter)window.SimpleBluetoothPrinter.reset();
+if(window.LegacyPrinters)window.LegacyPrinters.reset()
+}
+function changePrintDestination(){
+if(SENDING)return;
+resetPreparedPrints();setPrinterButton(false);
+try{if(AUTH)localStorage.setItem("da-lanches-printer:"+AUTH.station_id,$("printDestination").value)}catch(error){}
+$("printDestinationHelp").textContent=$("printDestination").value==="simple_bluetooth"?"Impressão automática no aplicativo. Configure nele a impressora da estação.":$("printDestination").value==="web_bluetooth"?"Requer navegador e impressora BLE compatíveis.":"A impressão usa o menu AirPrint do sistema.";
+drawHist()
+}
+function orderPrintButton(order){
+if(!canPrintSavedOrder(order))return "";
+var busy=SENDING||PRINT_PREPARING;
+return '<button class="btn" type="button" data-print-order="'+order.id+'" aria-label="Imprimir pedido '+order.id+'" aria-busy="'+(busy?"true":"false")+'"'+(busy?' disabled':'')+' onclick="printSelectedOrder('+order.id+')">🖨️ Imprimir pedido</button>'
+}
+function offerSavedPrint(order,reprint){
+var destination=printDestinationOf(order),module=destination==="simple_bluetooth"?window.SimpleBluetoothPrinter:window.LegacyPrinters;
+if(!module)throw new Error("A integração de impressão não carregou. Recarregue a página; o pedido continua salvo.");
+return module.offer(order,reprint)
+}
 function setPrinterButton(connected,reconnecting){
-var button=$("pb");
+var button=$("pb"),destination=$("printDestination").value||"simple_bluetooth";
 button.className="pbtn"+(connected?" on":"");
-button.textContent=connected?"🖨️ Ponte de impressão conectada":reconnecting?"🖨️ Verificando ponte...":"🖨️ Ponte de impressão";
-button.title=connected?"Ponte ESP32 disponível":reconnecting?"Verificando comunicação com a ponte":"A impressão é processada pela ponte ESP32";
-button.setAttribute("aria-label",button.title);
-button.setAttribute("aria-pressed",connected?"true":"false")
+button.textContent=destination==="web_bluetooth"?"🖨️ Conectar impressora":"🖨️ Impressora";
+button.title="Configurar impressora";button.setAttribute("aria-label",button.title)
 }
 window.btConn = async function(){
-toast("A conexão Bluetooth é feita pela ponte ESP32. Os pedidos são enviados automaticamente para a fila.");
-return false
+if($("printDestination").value==="web_bluetooth")return window.LegacyPrinters?window.LegacyPrinters.connect():false;
+$("printerSettings").open=!$("printerSettings").open
 };
+function printSavedNow(order,reprint){
+if(!canPrintSavedOrder(order))return;
+if(printDestinationOf(order)==="simple_bluetooth"){
+if(!window.SimpleBluetoothPrinter){toast("Pedido salvo. Recarregue a página para imprimir.");return}
+return window.SimpleBluetoothPrinter.print(order,reprint)
+}
+return offerSavedPrint(order,reprint)
+}
 async function send(){
- if(!count()||SENDING)return;
- SENDING=true;$("rev").disabled=true;$("rev").textContent="Salvando pedido...";
+ if(SENDING||PRINT_PREPARING||LOGGING_OUT||!AUTH)return;
+ if(!count()){var saved=getSavedOrder(LAST_SAVED_ID);if(saved)printSavedNow(saved,true);return}
+ resetPreparedPrints();
+ var saveRequest={owner:AUTH,generation:PRINT_PREPARATION};SAVE_REQUEST=saveRequest;
+ SENDING=true;$("rev").disabled=true;$("rev").textContent="Salvando pedido...";$("printDestination").disabled=true;
+ var order=null,destination=$("printDestination").value||"simple_bluetooth";
  try{
- var result=await api("/api/pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({itens:Object.keys(cart).map(function(i){return{id:Number(i),q:cart[i]}})})});
- var order=pedidoFromApi(result.pedido);orders.unshift(order);seq=Math.max(seq,order.id+1);
+ var result=await api("/api/pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({impressao_destino:destination,itens:Object.keys(cart).map(function(i){return{id:Number(i),q:cart[i]}})})});
+ if(SAVE_REQUEST!==saveRequest||AUTH!==saveRequest.owner||PRINT_PREPARATION!==saveRequest.generation)return;
+ order=pedidoFromApi(result.pedido);orders.unshift(order);LAST_SAVED_ID=order.id;seq=Math.max(seq,order.id+1);
  Object.keys(cart).forEach(function(i){var product=P(i);if(product&&product.e!=null)product.e=Math.max(0,product.e-cart[i])});
  cart={};saveCart();sum();hdr();drawHist();
- toast("Pedido #"+String(order.id).padStart(3,"0")+" salvo e colocado na fila de impressão.");
- }catch(error){console.error(error);toast("Erro ao salvar pedido: "+error.message)}
- finally{SENDING=false;$("rev").textContent="🖨️ Imprimir pedido";$("rev").disabled=!count()}
+ printSavedNow(order,false);
+ }catch(error){console.error(error);toast(order?"Pedido salvo. Toque em Imprimir pedido para tentar novamente.":"Não foi possível salvar: "+error.message)}
+ finally{if(SAVE_REQUEST===saveRequest){SAVE_REQUEST=null;SENDING=false;$("printDestination").disabled=false;sum();drawHist()}}
 }
 async function printSelectedOrder(id){
-var order=hist.concat(orders).filter(function(item){return item.id==id})[0];
-if(!order)return;
-if(!["station","admin"].includes(AUTH.role)||order.estacao_id!==AUTH.station_id){toast("Somente o perfil que criou o pedido pode reimprimi-lo.");return}
+var order=getSavedOrder(id);
+if(!canPrintSavedOrder(order)||SENDING||PRINT_PREPARING)return;
+resetPreparedPrints();PRINT_PREPARING=true;drawHist();
+var generation=PRINT_PREPARATION,owner=AUTH,timer;
 try{
-await api("/api/pedidos/"+id+"/reimprimir",{method:"POST"});
-order.impressao_status="pendente";
-toast("Pedido colocado novamente na fila de impressão.");
-}catch(error){toast("Não foi possível solicitar a reimpressão: "+error.message)}
+var result=await Promise.race([
+api("/api/pedidos/"+id+"/impressao/preparar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({destino:printDestinationOf(order)})}),
+new Promise(function(resolve,reject){timer=setTimeout(function(){reject(new Error("O servidor não respondeu. O pedido continua salvo."))},15000)})
+]);
+if(generation!==PRINT_PREPARATION||AUTH!==owner||LOGGING_OUT)return;
+var fresh=result.pedido;
+if(!fresh||fresh.id!==id||!canPrintSavedOrder(fresh,printDestinationOf(order)))throw new Error("Pedido indisponível nesta estação.");
+fresh=pedidoFromApi(fresh);Object.keys(fresh).forEach(function(key){order[key]=fresh[key]});
+LAST_SAVED_ID=id;printSavedNow(order,true);
+}catch(error){toast("Não foi possível imprimir: "+error.message)}
+finally{clearTimeout(timer);if(generation===PRINT_PREPARATION){PRINT_PREPARING=false;drawHist();sum()}}
 }
+var printContext={getAuth:function(){return AUTH},getOrder:getSavedOrder,canPrint:canPrintSavedOrder,onMessage:toast};
+if(window.SimpleBluetoothPrinter)window.SimpleBluetoothPrinter.configure(printContext);
+if(window.LegacyPrinters)window.LegacyPrinters.configure(printContext);
 startAuthApp();
 </script>
 </body></html>

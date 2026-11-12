@@ -57,7 +57,9 @@ funcionário, `STATION_1_PIN` tem prioridade sobre `EMPLOYEE_PIN`.
 Após cinco tentativas erradas para uma conta no mesmo endereço, o login fica
 bloqueado por cinco minutos.
 
-O iPad usa o sistema web normalmente. Os pedidos são salvos no servidor e entram na fila persistente de impressão; uma ponte ESP32, conectada ao Wi-Fi do estabelecimento, consulta a fila e envia a comanda à impressora por Bluetooth. O navegador não precisa acessar Bluetooth e não depende de AirPrint.
+O fluxo principal usa o Simple Bluetooth Printer no iPhone: selecionar produtos e
+clicar em **Imprimir pedido** salva o pedido e solicita impressão automática no
+aplicativo, mantendo o catálogo aberto. Não usa fila nem ESP32.
 Em hospedagem HTTPS, defina `SESSION_COOKIE_SECURE=true`, `FLASK_DEBUG=false`,
 uma `FLASK_SECRET_KEY` persistente e credenciais fortes; não use o servidor
 Flask de desenvolvimento em produção.
@@ -123,18 +125,59 @@ catalog-pastel/
 
 Execute os testes de banco/API com `python -m unittest discover -s tests`.
 Eles usam um banco temporário e não alteram `instance/da_lanches.db`.
+Execute os testes dos adaptadores com `node --test tests/test_*.js` (Node 20+).
 
+## Impressão direta no iPhone
 
-## Impressão por ponte ESP32
+O usuário confirmou impressão física no teste oficial:
+<https://bluetoothprinter.in/print-test/>. Configure uma vez no aplicativo
+Simple Bluetooth Printer a impressora da estação, papel de 58 mm e permissões.
+Esse teste não comprova instalação do aplicativo no iPad 2.
 
-O navegador não conversa mais diretamente com a impressora. Ao salvar um pedido, o servidor grava o pedido e um trabalho em `print_jobs` na mesma transação. A ponte ESP32 consulta a fila pela internet, reserva um trabalho por 90 segundos e informa o resultado. Trabalhos com falha são tentados novamente até cinco vezes; reservas abandonadas expiram e podem ser recuperadas. A reimpressão cria um novo trabalho sem duplicar o pedido nem alterar o estoque.
+No D&A, selecione os produtos e toque em **Imprimir pedido**. O servidor salva o
+pedido e desconta estoque uma única vez; a página solicita a impressão por
+`thermalprint://print?text=` com `encodeURIComponent()` e `autoprint=true`.
+O aplicativo recebe a solicitação para imprimir automaticamente. Não é preciso
+abrir o histórico, preparar outro botão ou revisar o texto antes de cada pedido.
 
-### Configuração do servidor (Railway)
+Em **Configurar impressora**, ficam as alternativas Web Bluetooth e AirPrint.
+A escolha é guardada neste navegador por estação, não precisa ser repetida a cada
+pedido. Web Bluetooth exige navegador e hardware BLE compatíveis; Safari/iPad 2
+não fornecem essa combinação. AirPrint abre o diálogo de impressão do sistema.
 
-Defina `PRINT_AGENT_TOKEN` com um segredo aleatório longo, igual ao configurado no firmware. Gere um valor com `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Não publique esse valor no Git. A persistência da fila depende de o banco SQLite e seu volume estarem persistentes no Railway.
+Se o aplicativo estiver ausente ou o iOS bloquear a abertura após uma resposta
+lenta do servidor, o pedido continua salvo. O mesmo botão passa a permitir
+reimprimir o último pedido sem cadastrá-lo nem descontar estoque novamente.
+Não há reenvio automático: toques repetidos rápidos na mesma comanda são
+ignorados. O iOS pode mostrar sua própria confirmação para abrir o aplicativo.
 
-### Firmware e compatibilidade
+A abertura do aplicativo e a volta ao navegador não confirmam saída de papel.
+O sistema não marca automaticamente `impresso`. A reimpressão do histórico
+revalida sessão, CSRF, estação e cancelamento e abre a impressão diretamente.
 
-O firmware da ponte ficará em `firmware/esp32-print-bridge`. A comunicação inicial será por BLE GATT, procurando uma característica gravável. O relatório `BT, USB PRINT` não confirma por si só o perfil Bluetooth, UUIDs, característica gravável ou protocolo de impressão da LT-8359. Portanto, a ponte ainda exige validação física antes de considerar a impressão pronta.
+Os adaptadores ES5 ficam em `static/`; Babel e polyfills existentes foram
+preservados. O formatador `ticketText()` foi recuperado do histórico, com 32
+colunas, quantidades e nomes dos itens, sem preços/total. Os caracteres de
+controle legados são removidos antes de codificar o texto do aplicativo.
+Teste acentos, nomes longos e a maior comanda real no iPhone.
 
-A fila usa entrega com repetição (at-least-once). Se a ponte perder a conexão depois de a impressora receber os bytes, mas antes de confirmar o resultado, uma nova tentativa poderá imprimir a mesma comanda novamente. O servidor só marca o pedido como impresso após receber a confirmação da ponte.
+## Fila antiga desativada
+
+Pedidos novos não geram trabalhos em `print_jobs`. As rotas antigas de agente
+ESP32 e enfileiramento retornam HTTP 410 e não processam trabalhos anteriores.
+Os registros históricos são preservados. Clientes antigos que enviam destino
+`padrao` também passam a salvar para impressão direta no aplicativo.
+
+## Atualização do banco e reversão
+
+O destino fica registrado em `pedidos.impressao_destino`, com padrão
+`simple_bluetooth`. Na primeira inicialização sobre um banco anterior, a
+migração aditiva cria uma cópia consistente pelo SQLite antes de adicionar o
+campo. O backup fica ao lado do banco, no padrão
+`da_lanches.before-impressao-destino-*.db`, com acesso restrito. Bancos novos e
+reinicializações após a migração não repetem a cópia. O volume precisa continuar
+persistente no Railway.
+
+Uma reversão deve preservar o campo e não reativar a fila antiga. Restaurar um
+backup de banco perde os pedidos criados depois daquela cópia; faça isso somente
+com o serviço parado e após validar os dados que precisam ser preservados.
