@@ -276,11 +276,11 @@ BT=d;BC=ch;$("pb").className="pbtn on";$("pb").textContent="🖨️ "+(d.name||"
 d.addEventListener("gattserverdisconnected",function(){BC=null;$("pb").className="pbtn";$("pb").textContent="🖨️ Conectar impressora"});return true}
 catch(e){toast("Não conectou: "+(e.message||e));return false}}
 function encodeTicketBytes(txt){
-var normalized=txt.normalize("NFD").replace(/[\\u0300-\\u036f]/g,""),bytes=[27,64,29,33,0,27,97,0];
+var normalized=txt.normalize("NFD").replace(/[\u0300-\u036f]/g,""),bytes=[27,64,29,33,0,27,97,0];
 for(var i=0;i<normalized.length;i++){
-if(normalized.charAt(i)==="\\x01")bytes.push(29,33,17);
-else if(normalized.charAt(i)==="\\x02")bytes.push(29,33,0);
-else if(normalized.charAt(i)==="\\x03")bytes.push(29,33,1);
+if(normalized.charAt(i)==="\x01")bytes.push(29,33,17);
+else if(normalized.charAt(i)==="\x02")bytes.push(29,33,0);
+else if(normalized.charAt(i)==="\x03")bytes.push(29,33,1);
 else{
 var code=normalized.charCodeAt(i);
 bytes.push(code===10||code>=32&&code<=126?code:63)
