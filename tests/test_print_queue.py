@@ -59,11 +59,12 @@ class PrintQueueApiTests(unittest.TestCase):
         finally:
             conn.close()
 
+        agent_client = app_module.app.test_client()
         headers = {
             "X-Print-Agent-Token": "test-agent-token",
             "X-Print-Agent-Id": "test-esp32",
         }
-        claimed = self.client.get(
+        claimed = agent_client.get(
             "/api/print-agent/jobs/next?station_id=station-1",
             headers=headers,
         )
@@ -71,7 +72,7 @@ class PrintQueueApiTests(unittest.TestCase):
         job = claimed.get_json()["job"]
         self.assertEqual(job["pedido_id"], order_id)
 
-        completed = self.client.post(
+        completed = agent_client.post(
             f"/api/print-agent/jobs/{job['id']}/result",
             headers=headers,
             json={"station_id": "station-1", "success": True},
