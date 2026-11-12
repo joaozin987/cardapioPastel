@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from hmac import compare_digest
 from io import BytesIO
+import json
 import os
 from secrets import token_hex, token_urlsafe
 from uuid import uuid4
@@ -318,6 +319,41 @@ def imagem_produto(product_id):
 def database_image_directory():
     return database.DB_PATH.parent / "product_images"
 
+def build_print_payload(conn, pedido_id):
+    pedido = conn.execute("SELECT * FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
+    itens = conn.execute(
+        "SELECT nome_produto,quantidade,preco_unitario FROM pedido_itens WHERE pedido_id=? ORDER BY id",
+        (pedido_id,),
+    ).fetchall()
+    mesa = f"{pedido['tipo']} {pedido['numero']}" if pedido["numero"] is not None else pedido["tipo"]
+    return {"pedido_id": pedido_id, "mesa": mesa, "observacao": pedido["observacao"] or "",
+            "criado_em": pedido["data_criacao"],
+            "itens": [{"nome": x["nome_produto"], "quantidade": x["quantidade"],
+                       "preco": float(x["preco_unitario"])} for x in itens]}
+
+
+def enqueue_print_job(conn, pedido_id, station_id):
+    now = datetime.now().isoformat(timespec="seconds")
+    payload = build_print_payload(conn, pedido_id)
+    conn.execute(
+        "INSERT INTO print_jobs(pedido_id,station_id,payload,status,created_at,updated_at) "
+        "VALUES(?,?,?,'pendente',?,?)",
+        (pedido_id, station_id, json.dumps(payload, ensure_ascii=False), now, now),
+    )
+    conn.execute("UPDATE pedidos SET impressao_status='pendente',impressao_atualizada_em=? WHERE id=?",
+                 (now, pedido_id))
+
+
+def require_print_agent():
+    expected = os.environ.get("PRINT_AGENT_TOKEN", "")
+    supplied = request.headers.get("X-Print-Agent-Token", "")
+    if not expected or expected.startswith("replace-with-"):
+        return jsonify({"erro": "A ponte de impressão ainda não foi configurada no servidor."}), 503
+    if not supplied or not compare_digest(expected, supplied):
+        return jsonify({"erro": "Credencial da ponte inválida."}), 401
+    return None
+
+
 @app.post("/api/pedidos")
 @require_roles("station", "admin")
 def criar_pedido():
@@ -358,6 +394,7 @@ def criar_pedido():
                          (pedido_id, p["id"], p["nome"], qtd, p["preco"]))
             if p["estoque"] is not None:
                 conn.execute("UPDATE produtos SET estoque=estoque-? WHERE id=?", (qtd, p["id"]))
+        enqueue_print_job(conn, pedido_id, session["station_id"])
         conn.commit()
         pedido = conn.execute("SELECT * FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
         return jsonify({"pedido": carregar_pedido(conn, pedido)}), 201
@@ -531,6 +568,136 @@ def atualizar_impressao(pedido_id):
         )
         conn.commit()
         return jsonify({"ok": True, "status": status})
+    finally:
+        conn.close()
+
+
+@app.post("/api/pedidos/<int:pedido_id>/reimprimir")
+@require_roles("station", "admin")
+def reimprimir_pedido(pedido_id):
+    conn = get_connection()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        pedido = conn.execute("SELECT estacao_id FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
+        if not pedido:
+            return jsonify({"erro": "Pedido não encontrado."}), 404
+        if pedido["estacao_id"] != session["station_id"]:
+            return jsonify({"erro": "Este pedido pertence a outra estação."}), 403
+        enqueue_print_job(conn, pedido_id, session["station_id"])
+        conn.commit()
+        return jsonify({"ok": True, "status": "pendente"}), 202
+    except Exception:
+        conn.rollback()
+        app.logger.exception("Falha ao colocar reimpressão na fila")
+        return jsonify({"erro": "Não foi possível colocar o pedido na fila de impressão."}), 500
+    finally:
+        conn.close()
+
+
+@app.get("/api/print-agent/jobs/next")
+def print_agent_next_job():
+    auth_error = require_print_agent()
+    if auth_error: return auth_error
+    station_id = request.args.get("station_id", "")
+    agent_id = request.headers.get("X-Print-Agent-Id", "esp32")
+    if station_id not in {profile[0] for profile in PROFILES.values()}:
+        return jsonify({"erro": "Estação inválida."}), 400
+    if not agent_id or len(agent_id) > 80:
+        return jsonify({"erro": "Identificação da ponte inválida."}), 400
+    now = datetime.now()
+    now_text = now.isoformat(timespec="seconds")
+    lease_text = (now + timedelta(seconds=90)).isoformat(timespec="seconds")
+    conn = get_connection()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            "INSERT INTO print_agent_heartbeats(station_id,agent_id,last_seen,printer_name) "
+            "VALUES(?,?,?,NULL) ON CONFLICT(station_id) DO UPDATE SET "
+            "agent_id=excluded.agent_id,last_seen=excluded.last_seen",
+            (station_id, agent_id, now_text),
+        )
+        job = conn.execute(
+            "SELECT * FROM print_jobs WHERE station_id=? AND "
+            "(status='pendente' OR (status='processando' AND lease_until<?)) "
+            "ORDER BY created_at,id LIMIT 1", (station_id, now_text),
+        ).fetchone()
+        if not job:
+            conn.commit()
+            return jsonify({"job": None, "poll_after_seconds": 3})
+        conn.execute(
+            "UPDATE print_jobs SET status='processando',attempts=attempts+1,claimed_by=?,lease_until=?,updated_at=? WHERE id=?",
+            (agent_id, lease_text, now_text, job["id"]),
+        )
+        conn.execute(
+            "UPDATE pedidos SET impressao_status='imprimindo',impressao_atualizada_em=? WHERE id=?",
+            (now_text, job["pedido_id"]),
+        )
+        conn.commit()
+        return jsonify({"job": {"id": job["id"], "pedido_id": job["pedido_id"],
+                                "attempt": job["attempts"] + 1, "payload": json.loads(job["payload"])},
+                        "lease_seconds": 90})
+    except Exception:
+        conn.rollback()
+        app.logger.exception("Falha ao reservar trabalho de impressão")
+        return jsonify({"erro": "Não foi possível consultar a fila."}), 500
+    finally:
+        conn.close()
+
+
+@app.post("/api/print-agent/jobs/<int:job_id>/result")
+def print_agent_job_result(job_id):
+    auth_error = require_print_agent()
+    if auth_error: return auth_error
+    data = request.get_json(silent=True) or {}
+    station_id = data.get("station_id")
+    agent_id = request.headers.get("X-Print-Agent-Id", "esp32")
+    success = data.get("success")
+    error_message = str(data.get("error", ""))[:500]
+    if success not in (True, False):
+        return jsonify({"erro": "Informe success como booleano."}), 400
+    now = datetime.now().isoformat(timespec="seconds")
+    conn = get_connection()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        job = conn.execute(
+            "SELECT pedido_id,station_id,status,attempts,claimed_by FROM print_jobs WHERE id=?",
+            (job_id,),
+        ).fetchone()
+        if not job: return jsonify({"erro": "Trabalho de impressão não encontrado."}), 404
+        if job["station_id"] != station_id:
+            return jsonify({"erro": "Trabalho pertence a outra estação."}), 403
+        if job["status"] != "processando" or job["claimed_by"] != agent_id:
+            return jsonify({"erro": "A reserva expirou ou pertence a outra ponte."}), 409
+        if success: job_status = order_status = "impresso"
+        elif job["attempts"] >= 5: job_status = order_status = "falhou"
+        else: job_status = order_status = "pendente"
+        conn.execute(
+            "UPDATE print_jobs SET status=?,last_error=?,claimed_by=NULL,lease_until=NULL,updated_at=? WHERE id=?",
+            (job_status, None if success else error_message or "Falha informada pela ponte.", now, job_id),
+        )
+        conn.execute("UPDATE pedidos SET impressao_status=?,impressao_atualizada_em=? WHERE id=?",
+                     (order_status, now, job["pedido_id"]))
+        conn.commit()
+        return jsonify({"ok": True, "status": order_status, "will_retry": order_status == "pendente"})
+    except Exception:
+        conn.rollback()
+        app.logger.exception("Falha ao registrar resultado da impressão")
+        return jsonify({"erro": "Não foi possível registrar o resultado."}), 500
+    finally:
+        conn.close()
+
+
+@app.get("/api/print-agent/status")
+def print_agent_status():
+    auth_error = require_print_agent()
+    if auth_error: return auth_error
+    station_id = request.args.get("station_id", "")
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT agent_id,last_seen FROM print_agent_heartbeats WHERE station_id=?",
+                           (station_id,)).fetchone()
+        online = bool(row and datetime.fromisoformat(row["last_seen"]) >= datetime.now()-timedelta(seconds=20))
+        return jsonify({"online": online, "last_seen": row["last_seen"] if row else None})
     finally:
         conn.close()
 
