@@ -283,7 +283,7 @@ def carregar_pedido(conn, pedido):
     return {"id": pedido["id"], "mesa": mesa, "obs": pedido["observacao"] or "", "junto": bool(pedido["entregar_junto"]),
             "cancel": bool(pedido["cancelado"]), "pronto": pedido["status"] == "pronto", "t": pedido["data_criacao"],
             "estacao_id": pedido["estacao_id"], "impressao_status": pedido["impressao_status"],
-            "impressao_destino": "simple_bluetooth" if pedido["impressao_destino"] == "padrao" else pedido["impressao_destino"],
+            "impressao_destino": "simple_bluetooth" if pedido["impressao_destino"] in {"padrao", "airprint"} else pedido["impressao_destino"],
             "itens": [{"produto_id": x["produto_id"], "n": x["nome_produto"], "q": x["quantidade"], "p": float(x["preco_unitario"]), "ok": bool(x["pronto"])} for x in itens]}
 
 @app.get("/")
@@ -326,9 +326,9 @@ def criar_pedido():
     if not isinstance(data, dict):
         return jsonify({"erro": "Informe um pedido válido."}), 400
     destino = data.get("impressao_destino", "simple_bluetooth")
-    if destino == "padrao":
+    if destino in ("padrao", "airprint"):
         destino = "simple_bluetooth"
-    if not isinstance(destino, str) or destino not in {"simple_bluetooth", "web_bluetooth", "airprint"}:
+    if not isinstance(destino, str) or destino not in {"simple_bluetooth", "web_bluetooth"}:
         return jsonify({"erro": "Destino de impressão inválido."}), 400
     itens = data.get("itens")
     if not isinstance(itens, list) or not itens:
@@ -547,7 +547,7 @@ def atualizar_impressao(pedido_id):
 @staff_required
 def preparar_impressao(pedido_id):
     data = request.get_json(silent=True)
-    if not isinstance(data, dict) or not isinstance(data.get("destino"), str) or data["destino"] not in {"simple_bluetooth", "web_bluetooth", "airprint"}:
+    if not isinstance(data, dict) or not isinstance(data.get("destino"), str) or data["destino"] not in {"simple_bluetooth", "web_bluetooth"}:
         return jsonify({"erro": "Destino de impressão direta inválido."}), 400
     conn = get_connection()
     try:
@@ -558,7 +558,7 @@ def preparar_impressao(pedido_id):
             return jsonify({"erro": "Este pedido pertence a outra estação."}), 403
         if pedido["cancelado"]:
             return jsonify({"erro": "Pedidos cancelados não podem ser impressos."}), 409
-        if ("simple_bluetooth" if pedido["impressao_destino"] == "padrao" else pedido["impressao_destino"]) != data["destino"]:
+        if ("simple_bluetooth" if pedido["impressao_destino"] in {"padrao", "airprint"} else pedido["impressao_destino"]) != data["destino"]:
             return jsonify({"erro": "Use o destino de impressão escolhido ao criar o pedido."}), 409
         return jsonify({"pedido": carregar_pedido(conn, pedido)})
     finally:

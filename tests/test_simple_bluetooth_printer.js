@@ -110,3 +110,9 @@ test('no queue option or multi-step Simple panel remains; adapters stay separate
   assert.equal(scripts.length,2);assert.match(html,/id="printerSettings"/);
   for(const file of ['ticket-text.js','simple-bluetooth-printer.js','legacy-printers.js'])assert(html.indexOf('/static/'+file)<html.indexOf('<script type="text/babel"'));
 });
+
+test('printer settings expose only Web Bluetooth and Simple Bluetooth Printer',()=>{
+  assert.match(html,/option value="web_bluetooth"/);
+  assert.match(html,/option value="simple_bluetooth"/);
+  assert.doesNotMatch(html,/option value="airprint"|ipad_api/);
+});

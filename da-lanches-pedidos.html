@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <div class="toast" id="toast"></div>
 <main>
 <section class="print-prepared" id="legacyPrintSaved" style="display:none"><p id="legacyPrintMessage" role="status" aria-live="polite"></p><button class="btn" id="legacyPrintOpen" type="button" disabled>Imprimir pedido salvo</button></section>
-<section class="view on" id="v1"><details id="printerSettings" class="print-choice"><summary>Configurar impressora</summary><label for="printDestination">Método de impressão</label><select id="printDestination" onchange="changePrintDestination()"><option value="simple_bluetooth">Simple Bluetooth Printer</option><option value="web_bluetooth">Web Bluetooth</option><option value="airprint">AirPrint</option></select><p id="printDestinationHelp">O botão Imprimir pedido salva e solicita a impressão automaticamente no aplicativo.</p></details><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
+<section class="view on" id="v1"><details id="printerSettings" class="print-choice"><summary>Configurar impressora</summary><label for="printDestination">Método de impressão</label><select id="printDestination" onchange="changePrintDestination()"><option value="simple_bluetooth">Simple Bluetooth Printer</option><option value="web_bluetooth">Web Bluetooth</option></select><p id="printDestinationHelp">O botão Imprimir pedido salva e solicita a impressão automaticamente no aplicativo.</p></details><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
 <section class="view" id="v3"><div class="hint">Toque em um pedido para ver as informações, imprimir ou cancelar.</div><div class="sums" id="sum"></div><input type="text" id="q" placeholder="Buscar pedido pelo número ou produto" oninput="drawHist()"><div id="hist"></div></section>
 <section class="view" id="v4"><button class="btn" style="margin:0 0 12px" onclick="edit(0)">+ Adicionar novo produto</button><div class="grid" id="prods"></div></section>
 </main>
@@ -372,7 +372,7 @@ $("adminBack").style.display=isAdmin?"block":"none";
 async function enterApp(){
 
 showApp();
-try{var chosen=localStorage.getItem("da-lanches-printer:"+AUTH.station_id);$("printDestination").value=["simple_bluetooth","web_bluetooth","airprint"].indexOf(chosen)!==-1?chosen:"simple_bluetooth"}catch(error){$("printDestination").value="simple_bluetooth"}
+try{var chosen=localStorage.getItem("da-lanches-printer:"+AUTH.station_id);$("printDestination").value=["simple_bluetooth","web_bluetooth"].indexOf(chosen)!==-1?chosen:"simple_bluetooth"}catch(error){$("printDestination").value="simple_bluetooth"}
 setPrinterButton(false);
 await loadData();restoreCart();drawCats();drawGrid();drawHist();hdr();go(1)
 }
@@ -467,8 +467,8 @@ if(refreshButton){refreshButton.disabled=false;refreshButton.textContent="↻ At
 window.addEventListener("online",function(){if(AUTH)refreshAppData(true)});
 document.addEventListener("visibilitychange",function(){if(AUTH&&document.visibilityState==="visible")refreshAppData(true)});
 var PRINT_PREPARING=false,PRINT_PREPARATION=0,SAVE_REQUEST=null,LAST_SAVED_ID=null,LOGGING_OUT=false;
-function printDestinationOf(order){return order.impressao_destino&&order.impressao_destino!=="padrao"?order.impressao_destino:"simple_bluetooth"}
-function printDestinationLabel(destination){return {simple_bluetooth:"SimpleBluetoothPrinter",web_bluetooth:"Web Bluetooth",airprint:"AirPrint"}[destination||"padrao"]||"Não informado"}
+function printDestinationOf(order){return order.impressao_destino==="web_bluetooth"?"web_bluetooth":"simple_bluetooth"}
+function printDestinationLabel(destination){return {simple_bluetooth:"SimpleBluetoothPrinter",web_bluetooth:"Web Bluetooth"}[destination||"padrao"]||"Não informado"}
 function getSavedOrder(id){return hist.concat(orders).filter(function(order){return order.id==id})[0]}
 function canPrintSavedOrder(order,destination){return !!(!LOGGING_OUT&&AUTH&&order&&["station","admin"].indexOf(AUTH.role)!==-1&&order.estacao_id===AUTH.station_id&&!order.cancel&&(!destination||printDestinationOf(order)===destination))}
 function resetPreparedPrints(){
@@ -480,7 +480,7 @@ function changePrintDestination(){
 if(SENDING)return;
 resetPreparedPrints();setPrinterButton(false);
 try{if(AUTH)localStorage.setItem("da-lanches-printer:"+AUTH.station_id,$("printDestination").value)}catch(error){}
-$("printDestinationHelp").textContent=$("printDestination").value==="simple_bluetooth"?"Impressão automática no aplicativo. Configure nele a impressora da estação.":$("printDestination").value==="web_bluetooth"?"Requer navegador e impressora BLE compatíveis.":"A impressão usa o menu AirPrint do sistema.";
+$("printDestinationHelp").textContent=$("printDestination").value==="simple_bluetooth"?"Impressão automática no aplicativo. Configure nele a impressora da estação.":"Requer navegador e impressora BLE compatíveis.";
 drawHist()
 }
 function orderPrintButton(order){

@@ -81,7 +81,7 @@ class PrintDestinationTests(unittest.TestCase):
         self.assertEqual(self.next_job().status_code, 410)
 
     def test_each_direct_destination_is_persisted_without_queue_or_extra_stock_changes(self):
-        for destination in ("simple_bluetooth", "web_bluetooth", "airprint"):
+        for destination in ("simple_bluetooth", "web_bluetooth"):
             with self.subTest(destination=destination):
                 stock = self.sql("SELECT estoque FROM produtos WHERE id=1")[0]["estoque"]
                 order = self.create_order(destination)
@@ -96,7 +96,16 @@ class PrintDestinationTests(unittest.TestCase):
                     self.assertEqual(prepared.get_json()["pedido"], order)
                 self.assertEqual(self.snapshot(), before)
         listed = self.client.get("/api/dados").get_json()["pedidos"]
-        self.assertEqual({order["impressao_destino"] for order in listed}, {"simple_bluetooth", "web_bluetooth", "airprint"})
+        self.assertEqual({order["impressao_destino"] for order in listed}, {"simple_bluetooth", "web_bluetooth"})
+
+    def test_old_airprint_orders_use_simple_bluetooth_without_rewriting_history(self):
+        order = self.create_order()
+        self.sql("UPDATE pedidos SET impressao_destino='airprint' WHERE id=?", (order["id"],))
+        before = self.snapshot()
+        response = self.prepare(order, "simple_bluetooth")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["pedido"]["impressao_destino"], "simple_bluetooth")
+        self.assertEqual(self.snapshot(), before)
 
     def test_invalid_destination_does_not_create_order_or_decrement_stock(self):
         before = self.snapshot()
@@ -127,12 +136,12 @@ class PrintDestinationTests(unittest.TestCase):
         admin = self.staff_client("station-2")
         with admin.session_transaction() as session:
             session["role"] = "admin"
-        own_order = self.create_order("airprint", client=admin)
+        own_order = self.create_order("web_bluetooth", client=admin)
         self.assertEqual(own_order["estacao_id"], "station-2")
         self.assertEqual(self.prepare(own_order, client=admin).status_code, 200)
 
     def test_creation_preserves_session_and_csrf_requirements(self):
-        body = {"itens": [{"id": 1, "q": 1}], "impressao_destino": "airprint"}
+        body = {"itens": [{"id": 1, "q": 1}], "impressao_destino": "web_bluetooth"}
         self.assertEqual(app_module.app.test_client().post("/api/pedidos", json=body).status_code, 401)
         client = self.staff_client()
         client.environ_base.pop("HTTP_X_CSRF_TOKEN")
@@ -142,7 +151,7 @@ class PrintDestinationTests(unittest.TestCase):
     def test_prepare_rejects_mismatched_destination_without_mutating_order(self):
         order = self.create_order()
         before = self.snapshot()
-        self.assertEqual(self.prepare(order, "airprint").status_code, 409)
+        self.assertEqual(self.prepare(order, "airprint").status_code, 400)
         self.assertEqual(self.prepare(order, "web_bluetooth").status_code, 409)
         self.assertEqual(self.snapshot(), before)
         standard = self.create_order("padrao")
@@ -153,7 +162,7 @@ class PrintDestinationTests(unittest.TestCase):
         self.assertEqual(self.client.post(f"/api/pedidos/{order['id']}/cancelar").status_code, 200)
         before = self.snapshot()
         self.assertEqual(self.prepare(order).status_code, 409)
-        self.assertEqual(self.prepare({"id": 999, "impressao_destino": "airprint"}).status_code, 404)
+        self.assertEqual(self.prepare({"id": 999, "impressao_destino": "web_bluetooth"}).status_code, 404)
         self.assertEqual(self.snapshot(), before)
 
     def test_prepare_validates_body_and_returns_fresh_server_order(self):
@@ -167,7 +176,7 @@ class PrintDestinationTests(unittest.TestCase):
         self.assertEqual(prepared.get_json()["pedido"]["impressao_status"], "pendente")
 
     def test_reprint_cannot_create_a_queue_job(self):
-        for destination in ("simple_bluetooth", "web_bluetooth", "airprint", "padrao"):
+        for destination in ("simple_bluetooth", "web_bluetooth", "padrao", "airprint"):
             order = self.create_order(destination)
             before = self.snapshot()
             self.assertEqual(self.client.post(f"/api/pedidos/{order['id']}/reimprimir").status_code, 410)

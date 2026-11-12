@@ -84,25 +84,13 @@ async function main() {
   assert(h.elements.legacyPrintMessage.textContent.includes('Bluetooth indisponível'));
   assert.equal(unsupported.impressao_status, 'manual'); assert.equal(h.stats.apiWrites, 0);
 
-  h = setup(); const air = order('airprint'); air.itens[0].n = '<img src=x onerror=alert(1)> & queijo'; h.put(air);
-  const before = JSON.stringify(air); h.window.LegacyPrinters.offer(air, true);
-  assert.equal(h.stats.opens, 0); h.elements.legacyPrintOpen.onclick();
-  assert.equal(h.stats.confirms, 1); assert.equal(h.stats.prints, 1);
-  assert(!h.popupDocument.html.includes(air.itens[0].n), 'untrusted names cannot enter document.write');
-  assert(h.nodes.some(node => node.textContent === '2x ' + air.itens[0].n));
-  assert(h.nodes.some(node => node.textContent.includes('REIMPRESSÃO')));
-  assert.equal(JSON.stringify(air), before); assert.equal(h.stats.apiWrites, 0);
-  assert(!h.elements.legacyPrintMessage.textContent.includes('Pedido impresso'));
-  h.elements.legacyPrintOpen.onclick(); assert.equal(h.stats.prints, 1, 'same offer is consumed once');
-  h = setup({confirm: false}); const cancelled = order('airprint'); h.put(cancelled);
-  h.window.LegacyPrinters.offer(cancelled, true); h.elements.legacyPrintOpen.onclick();
-  assert.equal(h.stats.opens, 0); assert.equal(h.stats.confirms, 1);
-
-  h = setup(); const stale = order('airprint'); h.put(stale); h.window.LegacyPrinters.offer(stale, false);
-  h.setAuth({role: 'admin', station_id: 'station-2'}); h.elements.legacyPrintOpen.onclick();
+  h = setup(); const unsupportedAirPrint = order('airprint'); h.put(unsupportedAirPrint);
+  assert.equal(h.window.LegacyPrinters.offer(unsupportedAirPrint, false), false);
   assert.equal(h.stats.opens, 0);
-  h = setup(); h.put(stale); h.window.LegacyPrinters.offer(stale, false); stale.cancel = true;
-  h.elements.legacyPrintOpen.onclick(); assert.equal(h.stats.opens, 0);
+  h = setup({bluetooth: true}); const stale = order('web_bluetooth'); h.put(stale); h.window.LegacyPrinters.offer(stale, false);
+  h.setAuth({role:'admin',station_id:'station-2'}); h.elements.legacyPrintOpen.onclick(); assert.equal(h.stats.requests,0);
+  h = setup({bluetooth: true}); const cancelled = order('web_bluetooth'); h.put(cancelled); h.window.LegacyPrinters.offer(cancelled,false); cancelled.cancel=true;
+  h.elements.legacyPrintOpen.onclick(); assert.equal(h.stats.requests,0);
 
   h = setup({bluetooth: true}); const ble = order('web_bluetooth'); h.put(ble);
   h.window.LegacyPrinters.offer(ble, false); assert.equal(h.stats.requests, 0);
@@ -134,6 +122,6 @@ async function main() {
     assert.equal(await lateConnection, false);
     assert.equal(h.device.gatt.connected, false, 'late GATT completion after reset/timeout must be disconnected');
   }
-  console.log('ticket-text/legacy-printers: layout, ES5, controls, explicit click, ownership, safe AirPrint, BLE chunks and stale connection guards OK');
+  console.log('ticket-text/legacy-printers: layout, ES5, controls, explicit click, ownership, AirPrint removed, BLE chunks and stale connection guards OK');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

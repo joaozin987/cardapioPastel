@@ -124,28 +124,6 @@
     }
     return Promise.resolve().then(next);
   }
-  function airPrint(order, reprint) {
-    var popup = root.open('', '_blank');
-    if (!popup) throw new Error('O navegador bloqueou a janela de impressão. Permita a abertura e tente pelo histórico.');
-    popup.opener = null;
-    var doc = popup.document;
-    doc.open();
-    doc.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Comprovante D&amp;A</title><style>@page{size:58mm auto;margin:0}body{box-sizing:border-box;width:58mm;margin:0;padding:3mm;color:#000;background:#fff;font:12px/1.35 monospace}h1{font-size:21px}h2{font-size:18px}h1,h2,.meta,footer{text-align:center}.item{font-size:16px;font-weight:bold;text-align:right;overflow-wrap:break-word}hr{border:0;border-top:1px dashed #000}</style></head><body></body></html>');
-    function add(tag, text, className) {
-      var node = doc.createElement(tag); node.textContent = text;
-      if (className) node.className = className;
-      doc.body.appendChild(node);
-    }
-    add('h1', "D&A LANCHE'S");
-    var id = String(order.id); while (id.length < 3) id = '0' + id;
-    add('h2', 'Pedido #' + id + (reprint ? ' · REIMPRESSÃO' : ''));
-    add('p', order.t.toLocaleDateString('pt-BR') + ' ' + order.t.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}), 'meta');
-    add('hr', '');
-    order.itens.forEach(function (item) { add('p', item.q + 'x ' + item.n, 'item'); });
-    add('hr', ''); add('footer', 'Obrigado!'); doc.close();
-    if (typeof popup.print !== 'function') throw new Error('Este navegador não oferece o menu de impressão.');
-    popup.focus(); popup.print();
-  }
   function openOffered() {
     var job = offered, order = job && current(job), button = el('legacyPrintOpen');
     if (!order) { reset(); message('Pedido indisponível para esta sessão. Atualize o histórico.'); return false; }
@@ -154,12 +132,6 @@
       message('Reimpressão cancelada. O pedido continua salvo.'); return false;
     }
     if (!current(job)) { reset(); message('A sessão ou o pedido mudou. Atualize o histórico.'); return false; }
-    if (job.destination === 'airprint') {
-      offered = null; if (button) button.disabled = true;
-      try { airPrint(order, job.reprint); message('Menu de impressão aberto. Confira o papel; o site não recebe confirmação física.'); }
-      catch (error) { message(error.message + ' O pedido continua salvo.'); }
-      return false;
-    }
     if (!root.navigator.bluetooth) { message('Bluetooth indisponível neste navegador. O pedido continua salvo no histórico.'); return false; }
     var epoch = generation, connection = connected() ? Promise.resolve(true) : connect();
     printing = true; if (button) button.disabled = true;
@@ -178,13 +150,13 @@
   }
   function offer(order, reprint) {
     var destination = order && order.impressao_destino;
-    if (destination !== 'web_bluetooth' && destination !== 'airprint') return false;
+    if (destination !== 'web_bluetooth') return false;
     if (!allowed(order, destination)) { reset(); message('Somente a estação que criou o pedido pode imprimi-lo.'); return false; }
     if (printing || connecting) { message('Há uma operação em andamento. O novo pedido está preservado no histórico.'); return false; }
     offered = {id: order.id, order: order, auth: auth(), destination: destination, reprint: !!reprint};
     var panel = el('legacyPrintSaved'), button = el('legacyPrintOpen');
     if (panel) panel.style.display = 'block';
-    if (button) { button.disabled = false; button.textContent = destination === 'airprint' ? 'Abrir impressão / AirPrint' : 'Imprimir pelo Bluetooth do navegador'; button.onclick = openOffered; }
+    if (button) { button.disabled = false; button.textContent = 'Imprimir pelo Bluetooth do navegador'; button.onclick = openOffered; }
     message('Pedido #' + order.id + ' salvo. Toque no botão para abrir a impressão.'); return true;
   }
   root.LegacyPrinters = {configure: function (options) { config = options || {}; }, offer: offer, connect: connect, reset: reset};

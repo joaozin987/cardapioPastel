@@ -140,10 +140,10 @@ pedido e desconta estoque uma única vez; a página solicita a impressão por
 O aplicativo recebe a solicitação para imprimir automaticamente. Não é preciso
 abrir o histórico, preparar outro botão ou revisar o texto antes de cada pedido.
 
-Em **Configurar impressora**, ficam as alternativas Web Bluetooth e AirPrint.
+Em **Configurar impressora**, ficam Simple Bluetooth Printer e Web Bluetooth.
 A escolha é guardada neste navegador por estação, não precisa ser repetida a cada
 pedido. Web Bluetooth exige navegador e hardware BLE compatíveis; Safari/iPad 2
-não fornecem essa combinação. AirPrint abre o diálogo de impressão do sistema.
+não fornecem essa combinação. A opção AirPrint foi removida.
 
 Se o aplicativo estiver ausente ou o iOS bloquear a abertura após uma resposta
 lenta do servidor, o pedido continua salvo. O mesmo botão passa a permitir
@@ -181,3 +181,12 @@ persistente no Railway.
 Uma reversão deve preservar o campo e não reativar a fila antiga. Restaurar um
 backup de banco perde os pedidos criados depois daquela cópia; faça isso somente
 com o serviço parado e após validar os dados que precisam ser preservados.
+
+## Limite da API no iPad antigo
+
+O esquema thermalprint exige Simple Bluetooth Printer instalado no próprio
+aparelho. A API remota Print Bridge exige um celular Android receptor com o
+aplicativo conectado à impressora; ela não cria acesso Bluetooth no Safari do
+iPad e não substitui a instalação de um aplicativo ou receptor compatível.
+Não há uma opção iPad/API operacional sem esse requisito. Documentação:
+<https://printbridge.bluetoothprinter.in/>.
