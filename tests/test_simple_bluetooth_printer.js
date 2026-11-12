@@ -38,7 +38,7 @@ function app() {
     clearTimeout(id) { timers.delete(id); }, confirm() { return true; }};
   context.window = context;
   vm.createContext(context);
-  for (const filename of ['ticket-text.js', 'simple-bluetooth-printer.js', 'legacy-printers.js']) {
+  for (const filename of ['ticket-text.js', 'simple-bluetooth-printer.js', 'legacy-printers.js', 'print-bridge.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, 'static', filename), 'utf8'), context);
   }
   for (const script of scripts) vm.runInContext('"use strict";\n' + script.replace(/\nstartAuthApp\(\);\s*$/, ''), context);
@@ -111,8 +111,71 @@ test('no queue option or multi-step Simple panel remains; adapters stay separate
   for(const file of ['ticket-text.js','simple-bluetooth-printer.js','legacy-printers.js'])assert(html.indexOf('/static/'+file)<html.indexOf('<script type="text/babel"'));
 });
 
-test('printer settings expose only Web Bluetooth and Simple Bluetooth Printer',()=>{
+test('printer settings expose Web Bluetooth, Simple Bluetooth and Android bridge without AirPrint',()=>{
   assert.match(html,/option value="web_bluetooth"/);
   assert.match(html,/option value="simple_bluetooth"/);
+  assert.match(html,/option value="print_bridge"/);
   assert.doesNotMatch(html,/option value="airprint"|ipad_api/);
+});
+
+test('Android transport saves once and sends the existing ticket, without navigation or printed status', async () => {
+  const {c,element,navigations}=app(), done=deferred(), requests=[];
+  element('printDestination').value='print_bridge';element('printBridgeCode').value='1234 5678 9012';
+  c.MENU=[{id:5,n:'Pastel',c:'Pastéis',p:9,e:3,on:true}];c.cart={5:1};
+  c.ticketText=()=>"\x01D&A\nCafé + queijo & 50%\x02";
+  c.go=()=>{throw new Error('Must remain on catalogue')};
+  c.api=async (path,options)=>{
+    requests.push([path,JSON.parse(options.body)]);
+    if(path==='/api/pedidos')return {pedido:order()};
+    if(path.endsWith('/preparar'))return {pedido:order()};
+    assert.equal(path,'/api/pedidos/1/impressao/android');return done.promise;
+  };
+  const saving=c.send();await Promise.resolve();await Promise.resolve();
+  await c.send();assert.equal(requests.length,2);assert.equal(c.SENDING,true);
+  assert.equal(requests[0][1].impressao_destino,'simple_bluetooth');
+  assert.deepEqual(requests[1][1],{code:'123456789012',text:'D&A\nCafé + queijo & 50%'});
+  done.resolve({status:'enviado'});await saving;await c.send();
+  assert.equal(requests.length,3);assert.equal(requests.filter(([path])=>path.endsWith('/android')).length,1);assert.equal(navigations.length,0);
+  assert.equal(c.orders.length,1);assert.equal(c.MENU[0].e,2);assert.equal(c.orders[0].impressao_status,'pendente');
+  assert.match(element('printBridgeStatus').textContent,/enviado ao Android/);
+});
+
+test('missing Android code or remote failure preserves the saved order and never retries automatically', async () => {
+  for(const code of ['', '１２３４５６７８９０１２', '123456789012']){
+    const {c,element,navigations,timers}=app();let calls=0;
+    element('printDestination').value='print_bridge';element('printBridgeCode').value=code;
+    c.MENU=[{id:5,n:'Pastel',c:'Pastéis',p:9,e:3,on:true}];c.cart={5:1};
+    c.api=async path=>{calls++;if(path==='/api/pedidos')return {pedido:order()};throw new Error('Código expirado')};
+    await c.send();
+    assert.equal(calls,code==='123456789012'?2:1);assert.equal(c.MENU[0].e,2);assert.equal(c.orders.length,1);
+    assert.equal(navigations.length,0);assert.equal(c.orders[0].impressao_status,'pendente');
+    assert.equal([...timers.values()].filter(t=>t.delay===1800).length,0);
+    assert.match(element('printBridgeStatus').textContent,code==='123456789012'?/Código expirado/:/12 dígitos/);
+  }
+});
+
+test('history reprint via Android revalidates the stored app destination and uses ticketText reprint', async () => {
+  const {c,element,navigations}=app(), requests=[];c.orders=[order()];
+  element('printDestination').value='print_bridge';element('printBridgeCode').value='123456789012';
+  c.api=async(path,options)=>{requests.push([path,JSON.parse(options.body)]);return path.endsWith('/preparar')?{pedido:order()}:{status:'enviado'}};
+  await c.printSelectedOrder(1);
+  assert.equal(requests.length,2);assert.equal(requests[0][1].destino,'simple_bluetooth');
+  assert.match(requests[1][1].text,/REIMPRESSAO/);assert.equal(navigations.length,0);
+});
+
+test('Android rejects foreign/cancelled orders and ignores feedback from a previous session', async () => {
+  const {c,element,notices}=app(), done=deferred();
+  element('printBridgeCode').value='123456789012';c.api=()=>done.promise;
+  for(const saved of [order(1,{cancel:true}),order(1,{estacao_id:'station-2'}),order(1,{impressao_destino:'web_bluetooth'})]){
+    c.orders=[saved];assert.equal(c.PrintBridge.print(saved,false),false);
+  }
+  const saved=order();c.orders=[saved];const pending=c.PrintBridge.print(saved,false);
+  c.resetPreparedPrints();c.AUTH=null;const before=notices.length;
+  done.resolve({status:'enviado'});await pending;assert.equal(notices.length,before);
+});
+
+test('Android adapter remains ES5 and never persists the receiving code',()=>{
+  const source=fs.readFileSync(path.join(root,'static/print-bridge.js'),'utf8');
+  assert.doesNotMatch(source,/\b(?:const|let|async|await)\b|=>|URLSearchParams|localStorage|sessionStorage/);
+  assert(html.indexOf('/static/print-bridge.js')<html.indexOf('<script type="text/babel"'));
 });

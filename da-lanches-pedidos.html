@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <div class="toast" id="toast"></div>
 <main>
 <section class="print-prepared" id="legacyPrintSaved" style="display:none"><p id="legacyPrintMessage" role="status" aria-live="polite"></p><button class="btn" id="legacyPrintOpen" type="button" disabled>Imprimir pedido salvo</button></section>
-<section class="view on" id="v1"><details id="printerSettings" class="print-choice"><summary>Configurar impressora</summary><label for="printDestination">Método de impressão</label><select id="printDestination" onchange="changePrintDestination()"><option value="simple_bluetooth">Simple Bluetooth Printer</option><option value="web_bluetooth">Web Bluetooth</option></select><p id="printDestinationHelp">O botão Imprimir pedido salva e solicita a impressão automaticamente no aplicativo.</p></details><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
+<section class="view on" id="v1"><details id="printerSettings" class="print-choice"><summary>Configurar impressora</summary><label for="printDestination">Método de impressão</label><select id="printDestination" onchange="changePrintDestination()"><option value="simple_bluetooth">Simple Bluetooth Printer</option><option value="web_bluetooth">Web Bluetooth</option><option value="print_bridge">iPad via Android (Print Bridge)</option></select><p id="printDestinationHelp">O botão Imprimir pedido salva e solicita a impressão automaticamente no aplicativo.</p><div id="printBridgeSettings" style="display:none"><label for="printBridgeCode">Código de 12 dígitos do Android</label><input id="printBridgeCode" type="password" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="Código do Print From Anywhere"><small>Mantenha essa tela aberta no Android e a impressora conectada. O código fica somente nesta página; digite novamente se recarregar.</small></div><p id="printBridgeStatus" role="status" aria-live="polite"></p></details><input type="text" id="sr" placeholder="🔎 Buscar produto (ex.: queijo, pizza, coca)" oninput="drawGrid()"><div class="cats" id="cats"></div><div class="grid" id="grid"></div></section>
 <section class="view" id="v3"><div class="hint">Toque em um pedido para ver as informações, imprimir ou cancelar.</div><div class="sums" id="sum"></div><input type="text" id="q" placeholder="Buscar pedido pelo número ou produto" oninput="drawHist()"><div id="hist"></div></section>
 <section class="view" id="v4"><button class="btn" style="margin:0 0 12px" onclick="edit(0)">+ Adicionar novo produto</button><div class="grid" id="prods"></div></section>
 </main>
@@ -223,6 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="/static/ticket-text.js"></script>
 <script src="/static/simple-bluetooth-printer.js"></script>
 <script src="/static/legacy-printers.js"></script>
+<script src="/static/print-bridge.js"></script>
 <script type="text/babel" data-presets="es2015,stage-3">
 
 var NID=1,MENU=[],CF=null,cart={},orders=[],hist=[],seq=1,cat="Todos",EID=0,SENDING=false,REMOVE_PRODUCT_IMAGE=false,IMAGE_PREVIEW_URL=null;
@@ -337,7 +338,7 @@ if(!r.ok)throw new Error(data.erro||"Falha ao comunicar com o servidor.");
 return data
 };
 function showLogin(){
-LAST_SAVED_ID=null;LOGGING_OUT=false;
+LAST_SAVED_ID=null;LOGGING_OUT=false;$("printBridgeCode").value="";$("printBridgeStatus").textContent="";
 
 document.querySelector("header").style.display="none";$("authBadge").style.display="none";
 document.querySelector("nav.tabs").style.display="none";document.querySelector("main").style.display="none";$("bar").style.display="none";
@@ -372,8 +373,8 @@ $("adminBack").style.display=isAdmin?"block":"none";
 async function enterApp(){
 
 showApp();
-try{var chosen=localStorage.getItem("da-lanches-printer:"+AUTH.station_id);$("printDestination").value=["simple_bluetooth","web_bluetooth"].indexOf(chosen)!==-1?chosen:"simple_bluetooth"}catch(error){$("printDestination").value="simple_bluetooth"}
-setPrinterButton(false);
+try{var chosen=localStorage.getItem("da-lanches-printer:"+AUTH.station_id);$("printDestination").value=["simple_bluetooth","web_bluetooth","print_bridge"].indexOf(chosen)!==-1?chosen:"simple_bluetooth"}catch(error){$("printDestination").value="simple_bluetooth"}
+changePrintDestination();
 await loadData();restoreCart();drawCats();drawGrid();drawHist();hdr();go(1)
 }
 async function startAuthApp(){
@@ -474,13 +475,15 @@ function canPrintSavedOrder(order,destination){return !!(!LOGGING_OUT&&AUTH&&ord
 function resetPreparedPrints(){
 PRINT_PREPARATION++;PRINT_PREPARING=false;
 if(window.SimpleBluetoothPrinter)window.SimpleBluetoothPrinter.reset();
-if(window.LegacyPrinters)window.LegacyPrinters.reset()
+if(window.LegacyPrinters)window.LegacyPrinters.reset();
+if(window.PrintBridge)window.PrintBridge.reset()
 }
 function changePrintDestination(){
 if(SENDING)return;
 resetPreparedPrints();setPrinterButton(false);
 try{if(AUTH)localStorage.setItem("da-lanches-printer:"+AUTH.station_id,$("printDestination").value)}catch(error){}
-$("printDestinationHelp").textContent=$("printDestination").value==="simple_bluetooth"?"Impressão automática no aplicativo. Configure nele a impressora da estação.":"Requer navegador e impressora BLE compatíveis.";
+$("printBridgeSettings").style.display=$("printDestination").value==="print_bridge"?"block":"none";
+$("printDestinationHelp").textContent=$("printDestination").value==="print_bridge"?"O pedido segue pela internet para o Android e sai na impressora conectada a ele. Teste gratuito limitado a 10 impressões por aparelho.":$("printDestination").value==="simple_bluetooth"?"Impressão automática no aplicativo. Configure nele a impressora da estação.":"Requer navegador e impressora BLE compatíveis.";
 drawHist()
 }
 function orderPrintButton(order){
@@ -506,25 +509,27 @@ $("printerSettings").open=!$("printerSettings").open
 function printSavedNow(order,reprint){
 if(!canPrintSavedOrder(order))return;
 if(printDestinationOf(order)==="simple_bluetooth"){
-if(!window.SimpleBluetoothPrinter){toast("Pedido salvo. Recarregue a página para imprimir.");return}
-return window.SimpleBluetoothPrinter.print(order,reprint)
+var adapter=$("printDestination").value==="print_bridge"?window.PrintBridge:window.SimpleBluetoothPrinter;
+if(!adapter){toast("Pedido salvo. Recarregue a página para imprimir.");return}
+return adapter.print(order,reprint)
 }
 return offerSavedPrint(order,reprint)
 }
 async function send(){
  if(SENDING||PRINT_PREPARING||LOGGING_OUT||!AUTH)return;
- if(!count()){var saved=getSavedOrder(LAST_SAVED_ID);if(saved)printSavedNow(saved,true);return}
+ if(!count()){var saved=getSavedOrder(LAST_SAVED_ID);if(saved){if($("printDestination").value==="print_bridge")return printSelectedOrder(saved.id);printSavedNow(saved,true)}return}
  resetPreparedPrints();
  var saveRequest={owner:AUTH,generation:PRINT_PREPARATION};SAVE_REQUEST=saveRequest;
  SENDING=true;$("rev").disabled=true;$("rev").textContent="Salvando pedido...";$("printDestination").disabled=true;
- var order=null,destination=$("printDestination").value||"simple_bluetooth";
+ // Print Bridge é outro transporte para o mesmo aplicativo; não muda o destino salvo.
+ var order=null,destination=$("printDestination").value==="web_bluetooth"?"web_bluetooth":"simple_bluetooth";
  try{
  var result=await api("/api/pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({impressao_destino:destination,itens:Object.keys(cart).map(function(i){return{id:Number(i),q:cart[i]}})})});
  if(SAVE_REQUEST!==saveRequest||AUTH!==saveRequest.owner||PRINT_PREPARATION!==saveRequest.generation)return;
  order=pedidoFromApi(result.pedido);orders.unshift(order);LAST_SAVED_ID=order.id;seq=Math.max(seq,order.id+1);
  Object.keys(cart).forEach(function(i){var product=P(i);if(product&&product.e!=null)product.e=Math.max(0,product.e-cart[i])});
  cart={};saveCart();sum();hdr();drawHist();
- printSavedNow(order,false);
+ await printSavedNow(order,false);
  }catch(error){console.error(error);toast(order?"Pedido salvo. Toque em Imprimir pedido para tentar novamente.":"Não foi possível salvar: "+error.message)}
  finally{if(SAVE_REQUEST===saveRequest){SAVE_REQUEST=null;SENDING=false;$("printDestination").disabled=false;sum();drawHist()}}
 }
@@ -542,13 +547,14 @@ if(generation!==PRINT_PREPARATION||AUTH!==owner||LOGGING_OUT)return;
 var fresh=result.pedido;
 if(!fresh||fresh.id!==id||!canPrintSavedOrder(fresh,printDestinationOf(order)))throw new Error("Pedido indisponível nesta estação.");
 fresh=pedidoFromApi(fresh);Object.keys(fresh).forEach(function(key){order[key]=fresh[key]});
-LAST_SAVED_ID=id;printSavedNow(order,true);
+LAST_SAVED_ID=id;await printSavedNow(order,true);
 }catch(error){toast("Não foi possível imprimir: "+error.message)}
 finally{clearTimeout(timer);if(generation===PRINT_PREPARATION){PRINT_PREPARING=false;drawHist();sum()}}
 }
-var printContext={getAuth:function(){return AUTH},getOrder:getSavedOrder,canPrint:canPrintSavedOrder,onMessage:toast};
+var printContext={getAuth:function(){return AUTH},getOrder:getSavedOrder,canPrint:canPrintSavedOrder,onMessage:toast,request:function(path,options){return api(path,options)}};
 if(window.SimpleBluetoothPrinter)window.SimpleBluetoothPrinter.configure(printContext);
 if(window.LegacyPrinters)window.LegacyPrinters.configure(printContext);
+if(window.PrintBridge)window.PrintBridge.configure(printContext);
 startAuthApp();
 </script>
 </body></html>

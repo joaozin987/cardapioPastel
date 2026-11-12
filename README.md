@@ -140,7 +140,8 @@ pedido e desconta estoque uma única vez; a página solicita a impressão por
 O aplicativo recebe a solicitação para imprimir automaticamente. Não é preciso
 abrir o histórico, preparar outro botão ou revisar o texto antes de cada pedido.
 
-Em **Configurar impressora**, ficam Simple Bluetooth Printer e Web Bluetooth.
+Em **Configurar impressora**, ficam Simple Bluetooth Printer, Web Bluetooth e
+**iPad via Android (Print Bridge)**.
 A escolha é guardada neste navegador por estação, não precisa ser repetida a cada
 pedido. Web Bluetooth exige navegador e hardware BLE compatíveis; Safari/iPad 2
 não fornecem essa combinação. A opção AirPrint foi removida.
@@ -182,11 +183,47 @@ Uma reversão deve preservar o campo e não reativar a fila antiga. Restaurar um
 backup de banco perde os pedidos criados depois daquela cópia; faça isso somente
 com o serviço parado e após validar os dados que precisam ser preservados.
 
-## Limite da API no iPad antigo
+## Teste real: iPad via Android
 
-O esquema thermalprint exige Simple Bluetooth Printer instalado no próprio
-aparelho. A API remota Print Bridge exige um celular Android receptor com o
-aplicativo conectado à impressora; ela não cria acesso Bluetooth no Safari do
-iPad e não substitui a instalação de um aplicativo ou receptor compatível.
-Não há uma opção iPad/API operacional sem esse requisito. Documentação:
-<https://printbridge.bluetoothprinter.in/>.
+O iPad envia pela internet ao Print Bridge; o aplicativo Android recebe e imprime
+pela conexão Bluetooth. O Android e o servidor precisam ter internet. Nenhum
+aplicativo é necessário no iPad, e os aparelhos não precisam estar na mesma rede.
+
+1. No Android, use **Bluetooth-USB Thermal Printer+**, da **Techpuram**:
+   <https://play.google.com/store/apps/details?id=com.iyaltamizh.app.btprinter>.
+   O guia detalha a recepção remota nesse aplicativo. Conecte a térmica e confirme
+   uma impressão pelo app; a função **Print From Web** do Simple Bluetooth Printer
+   não comprova a presença do menu que gera o código remoto na versão instalada.
+2. Abra **Developer Space → Print From Anywhere / Quick Print** (Print Bridge).
+   Mantenha essa tela aberta e anote o código temporário de 12 dígitos.
+3. No iPad, abra o D&A, entre na estação e escolha **Configurar impressora →
+   iPad via Android (Print Bridge)**. Digite o código nessa configuração.
+4. Selecione os itens e toque em **Imprimir pedido**. A página permanece no
+   catálogo. Não é necessário tocar em abrir aplicativo no iPad.
+
+O código fica apenas na memória desta página e é apagado ao sair/recarregar;
+não envie o código em mensagens nem o compartilhe publicamente. Se a tela no
+Android fechar, o código pode expirar. O plano gratuito permite **10 impressões
+totais por aparelho**, compartilhadas com Order Print; não é uma cota diária.
+Este primeiro modo é para validar o conjunto real, não para operação contínua
+em segundo plano. O modo persistente Order Print exige conta, pareamento e chave
+de API no servidor e não foi incluído neste teste.
+
+O adaptador ES5 `static/print-bridge.js` reutiliza `ticketText()` e o transporte
+do aplicativo; os pedidos continuam registrados como `simple_bluetooth`, sem
+migração de banco. A configuração atual decide entre abrir o app local ou enviar
+ao Android, inclusive ao reimprimir pedidos desse destino. Web Bluetooth mantém
+seu próprio destino. Falha no envio preserva o pedido e o estoque já descontado.
+
+O endpoint autenticado/CSRF `/api/pedidos/<id>/impressao/android` valida estação,
+cancelamento, código e texto (máximo 4.000 caracteres). O servidor usa o contrato
+Firebase documentado pelo fabricante, com host fixo, sessão existente, impressora
+determinada e PUT condicional por ETag. Uma impressão pendente não é sobrescrita.
+Não há fila local, novo cadastro, reenvio automático ou alteração de `impresso`.
+HTTP 202 significa **enviado ao serviço**, não confirmação de saída de papel.
+Se houver timeout, confira o Android e a impressora antes de repetir.
+
+Fontes e contrato utilizado:
+<https://printbridge.bluetoothprinter.in/06-print-from-anywhere.html>,
+<https://printbridge.bluetoothprinter.in/js/quick-print.js> e
+<https://firebase.google.com/docs/database/rest/save-data#section-conditional-requests>.

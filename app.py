@@ -13,6 +13,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.middleware.proxy_fix import ProxyFix
 import database
 from database import get_connection, init_db
+from print_bridge import PrintBridgeError, send_to_android
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
@@ -563,6 +564,34 @@ def preparar_impressao(pedido_id):
         return jsonify({"pedido": carregar_pedido(conn, pedido)})
     finally:
         conn.close()
+
+
+@app.post("/api/pedidos/<int:pedido_id>/impressao/android")
+@staff_required
+def imprimir_no_android(pedido_id):
+    data = request.get_json(silent=True)
+    if (not isinstance(data, dict) or not isinstance(data.get("code"), str)
+            or len(data["code"]) != 12 or not data["code"].isascii() or not data["code"].isdigit()
+            or not isinstance(data.get("text"), str) or not 1 <= len(data["text"]) <= 4000
+            or any(ord(char) < 32 and char not in "\n\r" or ord(char) == 127 for char in data["text"])):
+        return jsonify({"erro": "Informe um código de 12 dígitos e uma comanda de até 4.000 caracteres."}), 400
+    conn = get_connection()
+    try:
+        pedido = conn.execute("SELECT * FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
+        if not pedido:
+            return jsonify({"erro": "Pedido não encontrado."}), 404
+        if pedido["estacao_id"] != session.get("station_id"):
+            return jsonify({"erro": "Este pedido pertence a outra estação."}), 403
+        if pedido["cancelado"] or pedido["impressao_destino"] == "web_bluetooth":
+            return jsonify({"erro": "Este pedido não está disponível para impressão pelo aplicativo."}), 409
+    finally:
+        conn.close()
+    try:
+        send_to_android(data["code"], data["text"])
+    except PrintBridgeError as error:
+        return jsonify({"erro": str(error)}), 502
+    # Aceitação pelo serviço não confirma impressão física nem altera estoque/status.
+    return jsonify({"status": "enviado"}), 202
 
 
 @app.post("/api/pedidos/<int:pedido_id>/reimprimir")
