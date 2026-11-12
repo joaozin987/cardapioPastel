@@ -5,3 +5,7 @@ __pycache__/
 instance/da_lanches.db
 instance/da_lanches.db-*
 instance/product_images/
+
+# ESP32 firmware local configuration
+firmware/esp32-print-bridge/secrets.h
+firmware/esp32-print-bridge/.pio/
