@@ -219,7 +219,6 @@ std::vector<uint8_t> makeReceipt(JsonObject payload) {
   String note = String(payload["observacao"] | "");
   if (note.length()) appendText(out, "Obs: " + note + "\n");
   appendText(out, "--------------------------------\nObrigado!\n\n\n");
-  out.push_back(0x1D); out.push_back(0x56); out.push_back(0x00);
   return out;
 }
 
