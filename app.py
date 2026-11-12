@@ -4,6 +4,7 @@ from functools import wraps
 from hmac import compare_digest
 from io import BytesIO
 import json
+import unicodedata
 import os
 from secrets import token_hex, token_urlsafe
 from uuid import uuid4
@@ -319,6 +320,11 @@ def imagem_produto(product_id):
 def database_image_directory():
     return database.DB_PATH.parent / "product_images"
 
+def printer_ascii(value):
+    normalized = unicodedata.normalize("NFKD", str(value or ""))
+    return normalized.encode("ascii", "ignore").decode("ascii")
+
+
 def build_print_payload(conn, pedido_id):
     pedido = conn.execute("SELECT * FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
     itens = conn.execute(
@@ -326,9 +332,9 @@ def build_print_payload(conn, pedido_id):
         (pedido_id,),
     ).fetchall()
     mesa = f"{pedido['tipo']} {pedido['numero']}" if pedido["numero"] is not None else pedido["tipo"]
-    return {"pedido_id": pedido_id, "mesa": mesa, "observacao": pedido["observacao"] or "",
+    return {"pedido_id": pedido_id, "mesa": printer_ascii(mesa), "observacao": printer_ascii(pedido["observacao"] or ""),
             "criado_em": pedido["data_criacao"],
-            "itens": [{"nome": x["nome_produto"], "quantidade": x["quantidade"],
+            "itens": [{"nome": printer_ascii(x["nome_produto"]), "quantidade": x["quantidade"],
                        "preco": float(x["preco_unitario"])} for x in itens]}
 
 
@@ -616,8 +622,23 @@ def print_agent_next_job():
             "agent_id=excluded.agent_id,last_seen=excluded.last_seen",
             (station_id, agent_id, now_text),
         )
+        expired = conn.execute(
+            "SELECT id,pedido_id FROM print_jobs WHERE station_id=? AND status='processando' "
+            "AND lease_until<? AND attempts>=5",
+            (station_id, now_text),
+        ).fetchall()
+        for expired_job in expired:
+            conn.execute(
+                "UPDATE print_jobs SET status='falhou',last_error='Tempo limite da ponte excedido.',"
+                "claimed_by=NULL,lease_until=NULL,updated_at=? WHERE id=?",
+                (now_text, expired_job["id"]),
+            )
+            conn.execute(
+                "UPDATE pedidos SET impressao_status='falhou',impressao_atualizada_em=? WHERE id=?",
+                (now_text, expired_job["pedido_id"]),
+            )
         job = conn.execute(
-            "SELECT * FROM print_jobs WHERE station_id=? AND "
+            "SELECT * FROM print_jobs WHERE station_id=? AND attempts<5 AND "
             "(status='pendente' OR (status='processando' AND lease_until<?)) "
             "ORDER BY created_at,id LIMIT 1", (station_id, now_text),
         ).fetchone()
