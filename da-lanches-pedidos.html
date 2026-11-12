@@ -275,14 +275,50 @@ if(!ch){toast("Não achei canal de impressão");return false}
 BT=d;BC=ch;$("pb").className="pbtn on";$("pb").textContent="🖨️ "+(d.name||"Conectada");toast("Impressora conectada");
 d.addEventListener("gattserverdisconnected",function(){BC=null;$("pb").className="pbtn";$("pb").textContent="🖨️ Conectar impressora"});return true}
 catch(e){toast("Não conectou: "+(e.message||e));return false}}
+function encodeTicketBytes(txt){
+var normalized=txt.normalize("NFD").replace(/[\\u0300-\\u036f]/g,""),bytes=[27,64,29,33,0,27,97,0];
+for(var i=0;i<normalized.length;i++){
+if(normalized.charAt(i)==="\\x01")bytes.push(29,33,17);
+else if(normalized.charAt(i)==="\\x02")bytes.push(29,33,0);
+else if(normalized.charAt(i)==="\\x03")bytes.push(29,33,1);
+else{
+var code=normalized.charCodeAt(i);
+bytes.push(code===10||code>=32&&code<=126?code:63)
+}
+}
+bytes.push(29,33,0,27,97,0,10,10,10,10);
+return new Uint8Array(bytes)
+}
+var PrinterTransports={
+ble:{
+isConnected:function(){return !!(BT&&BC&&BT.gatt&&BT.gatt.connected)},
+sendBytes:async function(bytes){
+if(!this.isConnected())throw new Error("Impressora Bluetooth desconectada.");
+var channel=BC,chunkSize=20;
+for(var offset=0;offset<bytes.length;offset+=chunkSize){
+if(channel!==BC||!this.isConnected())throw new Error("A conexão com a impressora foi interrompida.");
+var chunk=bytes.slice(offset,offset+chunkSize);
+if(channel.properties.writeWithoutResponse){
+await channel.writeValueWithoutResponse(chunk);
+await new Promise(function(resolve){setTimeout(resolve,20)})
+}else{
+await channel.writeValue(chunk)
+}
+}
+}
+}
+};
 async function btPrint(txt){
-if(!BC){await btConn();if(!BC)return false}
-try{var t=txt.normalize("NFD").replace(/[\u0300-\u036f]/g,""),b=[27,64,29,33,0,27,97,0];
-for(var i=0;i<t.length;i++){if(t.charAt(i)=="\x01")b.push(29,33,17);else if(t.charAt(i)=="\x02")b.push(29,33,0);else if(t.charAt(i)=="\x03")b.push(29,33,1);else{var code=t.charCodeAt(i);b.push(code==10||code>=32&&code<=126?code:63)}}
-b.push(29,33,0,27,97,0,10,10,10,10);
-var u=new Uint8Array(b),chunkSize=20;
-for(var p=0;p<u.length;p+=chunkSize){var c=u.slice(p,p+chunkSize);if(BC.properties.writeWithoutResponse){await BC.writeValueWithoutResponse(c);await new Promise(function(r){setTimeout(r,20)})}else await BC.writeValue(c)}
-toast("Enviado para a impressora");return true}catch(e){toast("Erro ao imprimir: "+(e.message||e));return false}}
+try{
+var payload=encodeTicketBytes(txt);
+await PrinterTransports.ble.sendBytes(payload);
+toast("Enviado para a impressora");
+return true
+}catch(error){
+toast("Erro ao imprimir: "+(error.message||error));
+return false
+}
+}
 function tot(o){return o.itens.reduce(function(s,x){return s+x.p*x.q},0)}
 function C(s,width){var p=Math.max(0,Math.floor((width-s.length)/2));return " ".repeat(p)+s}
 function R(s,width){s=String(s);return " ".repeat(Math.max(0,width-s.length))+s}
