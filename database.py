@@ -86,6 +86,28 @@ def init_db():
             FOREIGN KEY(pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
             FOREIGN KEY(produto_id) REFERENCES produtos(id) ON DELETE SET NULL
         );
+        CREATE TABLE IF NOT EXISTS print_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL,
+            station_id TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pendente'
+                CHECK(status IN ('pendente','processando','impresso','falhou')),
+            attempts INTEGER NOT NULL DEFAULT 0,
+            claimed_by TEXT,
+            lease_until TEXT,
+            last_error TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY(pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_print_jobs_queue ON print_jobs(station_id,status,created_at);
+        CREATE TABLE IF NOT EXISTS print_agent_heartbeats (
+            station_id TEXT PRIMARY KEY,
+            agent_id TEXT NOT NULL,
+            last_seen TEXT NOT NULL,
+            printer_name TEXT
+        );
         CREATE INDEX IF NOT EXISTS idx_pedidos_data ON pedidos(data_criacao);
         CREATE INDEX IF NOT EXISTS idx_itens_pedido ON pedido_itens(pedido_id);
         CREATE TABLE IF NOT EXISTS schema_migrations (
