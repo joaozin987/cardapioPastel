@@ -57,18 +57,7 @@ funcionário, `STATION_1_PIN` tem prioridade sobre `EMPLOYEE_PIN`.
 Após cinco tentativas erradas para uma conta no mesmo endereço, o login fica
 bloqueado por cinco minutos.
 
-Para testar Web Bluetooth em outro aparelho, o site precisa de HTTPS ou ser
-aberto em `localhost`. A rede local por HTTP permite testar o login, o catálogo
-e os pedidos compartilhados, mas não habilita Web Bluetooth no Android. O
-Com a sessão aberta, o botão **Atualizar dados (sem desconectar)** e os atalhos
-`F5`/`Ctrl+R` atualizam os dados sem recarregar a página, mantendo a conexão
-Bluetooth. O carrinho também é salvo por estação e restaurado após uma recarga
-completa. O botão de atualizar do navegador ainda recarrega a página; o
-navegador encerra a conexão e mostra um aviso antes de continuar. Depois da
-recarga, o Chrome tenta reconectar à impressora previamente autorizada e
-vinculada à estação. Se não conseguir, use **Conectar impressora**. Atualizar
-durante o envio de uma nota pode interromper a impressão. No iPad/Safari, os pedidos são gravados no servidor e entram na fila de impressão. A comunicação Bluetooth é responsabilidade da ponte ESP32; o navegador não acessa diretamente a impressora.
-
+O iPad usa o sistema web normalmente. Os pedidos são salvos no servidor e entram na fila persistente de impressão; uma ponte ESP32, conectada ao Wi-Fi do estabelecimento, consulta a fila e envia a comanda à impressora por Bluetooth. O navegador não precisa acessar Bluetooth e não depende de AirPrint.
 Em hospedagem HTTPS, defina `SESSION_COOKIE_SECURE=true`, `FLASK_DEBUG=false`,
 uma `FLASK_SECRET_KEY` persistente e credenciais fortes; não use o servidor
 Flask de desenvolvimento em produção.
