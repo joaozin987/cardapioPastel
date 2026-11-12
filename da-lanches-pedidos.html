@@ -252,14 +252,6 @@ o.itens.forEach(function(x){h+='<div class="dl"><span>'+x.q+'x '+x.n+'</span><sp
 return h+'<div class="dl"><span>Situação</span><span>'+(o.cancel?'Cancelado':o.pronto?'Entregue':'Em preparo')+'</span></div><div class="dl tt"><span>Total</span><span>'+money(tot(o))+'</span></div></div><button class="btn" onclick="printSelectedOrder('+o.id+')">🖨️ Imprimir pedido</button><button class="btn alt" onclick="tgl('+o.id+')">Voltar</button>'}
 function hdr(){var today=new Date().toDateString(),daily=hist.concat(orders).filter(function(o){return o.t.toDateString()===today&&!o.cancel});$("hs").innerHTML='<small>HOJE</small><b>'+daily.length+' pedidos · '+money(daily.reduce(function(total,order){return total+tot(order)},0))+'</b>'}
 function tot(o){return o.itens.reduce(function(s,x){return s+x.p*x.q},0)}
-function C(s,width){var p=Math.max(0,Math.floor((width-s.length)/2));return " ".repeat(p)+s}
-function R(s,width){s=String(s);return " ".repeat(Math.max(0,width-s.length))+s}
-function L(a,b,width){b=String(b);return a+" ".repeat(Math.max(1,width-a.length-b.length))+b}
-function wrap(s,width){var words=s.split(/\s+/),lines=[],line="";words.forEach(function(word){while(word.length>width){if(line){lines.push(line);line=""}lines.push(word.slice(0,width));word=word.slice(width)}if(line&&line.length+1+word.length>width){lines.push(line);line=word}else line+=(line?" ":"")+word});if(line)lines.push(line);return lines}
-function printName(name){var names={"Pastel de carne de sol com queijo":"Pastel carne sol c/ queijo","Pastel de frango com catupiry":"Pastel frango c/ catupiry","Pastel de frango com queijo":"Pastel frango c/ queijo","Pastel de calabresa com queijo":"Pastel calabresa c/ queijo","Pizza brotinho de calabresa":"Pizza calabresa","Pizza brotinho de mussarela":"Pizza mussarela","Pizza brotinho de frango com catupiry":"Pizza frango c/ catupiry"};return names[name]||name.replace(/^Pastel de /i,"Pastel ").replace(/^Pizza brotinho de /i,"Pizza ").replace(/ com /gi," c/ ")}
-function ticketText(o,re){var W=32,D="--------------------------------\n",date=o.t.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"}),time=o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),t="\x01"+C("D&A LANCHE'S",16)+"\n"+C("PEDIDO #"+String(o.id).padStart(3,"0"),16)+"\n"+(re?C("REIMPRESSAO",16)+"\n":"")+"\x02"+C(date,W)+"\n"+C(time,W)+"\n"+D+"\x03";
-o.itens.forEach(function(x){t+="\n"+wrap(x.q+"x "+printName(x.n),W).map(function(line){return R(line,W)}).join("\n")+"\n"});
-return t+D+C("Obrigado!",W)}
 async function cancelOrder(id){if(CF!=id){CF=id;drawHist();return}try{await api("/api/pedidos/"+id+"/cancelar",{method:"POST"});CF=null;await loadData();drawHist();hdr();toast("Pedido cancelado")}catch(e){toast("Erro ao cancelar pedido: "+e.message)}}
 function drawHist(){var all=hist.concat(orders),day=86400000,now=new Date(),st=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
 function agg(f){var l=all.filter(function(o){return o.t.getTime()>=f&&!o.cancel});return{n:l.length,v:l.reduce(function(s,o){return s+tot(o)},0)}}
@@ -411,18 +403,9 @@ $("adminSummary").innerHTML='<div class="admin-cards"><div class="admin-card"><s
 }
 async function logoutApp(){
 try{await api("/api/auth/logout",{method:"POST"})}catch(error){console.error(error)}
-if(BT&&BT.gatt&&BT.gatt.connected)BT.gatt.disconnect();
-cart={};saveCart();AUTH=null;CSRF_TOKEN="";MENU=[];orders=[];BC=null;BT=null;showLogin()
+cart={};saveCart();AUTH=null;CSRF_TOKEN="";MENU=[];orders=[];showLogin()
 }
-var PRINTER_CONNECT_PROMISE=null;
-var PRINTER_LISTENERS=new WeakSet();
 var REFRESHING=false;
-window.addEventListener("beforeunload",function(event){
-if(BT&&BC&&BT.gatt&&BT.gatt.connected){
-event.preventDefault();
-event.returnValue=""
-}
-});
 window.addEventListener("keydown",function(event){
 var reloadKey=event.key==="F5"||(event.key.toLowerCase()==="r"&&(event.ctrlKey||event.metaKey));
 if(!reloadKey||!AUTH)return;
