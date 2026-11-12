@@ -141,3 +141,18 @@ catalog-pastel/
 
 Execute os testes de banco/API com `python -m unittest discover -s tests`.
 Eles usam um banco temporário e não alteram `instance/da_lanches.db`.
+
+
+## Impressão por ponte ESP32
+
+O navegador não conversa mais diretamente com a impressora. Ao salvar um pedido, o servidor grava o pedido e um trabalho em `print_jobs` na mesma transação. A ponte ESP32 consulta a fila pela internet, reserva um trabalho por 90 segundos e informa o resultado. Trabalhos com falha são tentados novamente até cinco vezes; reservas abandonadas expiram e podem ser recuperadas. A reimpressão cria um novo trabalho sem duplicar o pedido nem alterar o estoque.
+
+### Configuração do servidor (Railway)
+
+Defina `PRINT_AGENT_TOKEN` com um segredo aleatório longo, igual ao configurado no firmware. Gere um valor com `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Não publique esse valor no Git. A persistência da fila depende de o banco SQLite e seu volume estarem persistentes no Railway.
+
+### Firmware e compatibilidade
+
+O firmware da ponte ficará em `firmware/esp32-print-bridge`. A comunicação inicial será por BLE GATT, procurando uma característica gravável. O relatório `BT, USB PRINT` não confirma por si só o perfil Bluetooth, UUIDs, característica gravável ou protocolo de impressão da LT-8359. Portanto, a ponte ainda exige validação física antes de considerar a impressão pronta.
+
+A fila usa entrega com repetição (at-least-once). Se a ponte perder a conexão depois de a impressora receber os bytes, mas antes de confirmar o resultado, uma nova tentativa poderá imprimir a mesma comanda novamente. O servidor só marca o pedido como impresso após receber a confirmação da ponte.
