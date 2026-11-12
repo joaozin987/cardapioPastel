@@ -555,8 +555,8 @@ document.addEventListener("visibilitychange",function(){if(AUTH&&document.visibi
 function setPrinterButton(connected,reconnecting){
 var button=$("pb");
 button.className="pbtn"+(connected?" on":"");
-button.textContent=connected?"🖨️ Impressora conectada":reconnecting?"🖨️ Reconectando...":navigator.bluetooth?"🖨️ Conectar impressora":"🖨️ AirPrint (iPhone/iPad)";
-button.title=connected?"Impressora conectada":reconnecting?"Reconectando à impressora":navigator.bluetooth?"Conectar impressora":"Imprimir pelo menu AirPrint do iPhone/iPad";
+button.textContent=connected?"🖨️ Impressora conectada":reconnecting?"🖨️ Reconectando...":navigator.bluetooth?"🖨️ Conectar impressora":"🖨️ Bluetooth indisponível";
+button.title=connected?"Impressora conectada":reconnecting?"Reconectando à impressora":navigator.bluetooth?"Conectar impressora":"Este navegador não disponibiliza conexão Bluetooth para impressão";
 button.setAttribute("aria-label",button.title);
 button.setAttribute("aria-pressed",connected?"true":"false")
 }
@@ -651,7 +651,7 @@ var result=await api("/api/pedidos",{method:"POST",headers:{"Content-Type":"appl
 order=pedidoFromApi(result.pedido);orders.unshift(order);seq=Math.max(seq,order.id+1);
 Object.keys(cart).forEach(function(i){var product=P(i);if(product&&product.e!=null)product.e=Math.max(0,product.e-cart[i])});
 cart={};saveCart();sum();hdr();drawHist();$("rev").textContent="Iniciando impressão...";
-if(useAirPrint){printWithAirPrint(order,false);return}
+if(useAirPrint){toast("Pedido salvo. Este navegador ainda não oferece conexão direta com a impressora.");return}
 try{await api("/api/pedidos/"+order.id+"/impressao",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"imprimindo"})});order.impressao_status="imprimindo"}
 catch(error){toast("Pedido salvo, mas não iniciou a impressão: "+error.message);return}
 var printed=await btPrint(ticketText(order,false));
@@ -665,7 +665,7 @@ function printSelectedOrder(id){
 var order=hist.concat(orders).filter(function(item){return item.id==id})[0];
 if(!order)return;
 if(!["station","admin"].includes(AUTH.role)||order.estacao_id!==AUTH.station_id){toast("Somente o perfil que criou o pedido pode reimprimi-lo.");return}
-if(!navigator.bluetooth){printWithAirPrint(order,true);return}
+if(!navigator.bluetooth){toast("Não é possível reimprimir neste navegador: falta uma conexão compatível com a impressora.");return}
 btPrint(ticketText(order,true))
 }
 startAuthApp();
