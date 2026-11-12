@@ -310,6 +310,11 @@ await channel.writeValue(chunk)
 };
 async function btPrint(txt){
 try{
+if(!navigator.bluetooth)throw new Error("Este navegador não disponibiliza Bluetooth para conectar à impressora.");
+if(!PrinterTransports.ble.isConnected()){
+var connected=await btConn();
+if(!connected||!PrinterTransports.ble.isConnected())throw new Error("Não foi possível conectar à impressora.");
+}
 var payload=encodeTicketBytes(txt);
 await PrinterTransports.ble.sendBytes(payload);
 toast("Enviado para a impressora");
