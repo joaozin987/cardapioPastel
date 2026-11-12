@@ -67,14 +67,7 @@ completa. O botão de atualizar do navegador ainda recarrega a página; o
 navegador encerra a conexão e mostra um aviso antes de continuar. Depois da
 recarga, o Chrome tenta reconectar à impressora previamente autorizada e
 vinculada à estação. Se não conseguir, use **Conectar impressora**. Atualizar
-durante o envio de uma nota pode interromper a impressão. No Safari do iPhone e
-iPad, o botão **AirPrint (iPhone/iPad)** e o envio/reimpressão de pedidos usam
-o menu nativo de impressão do sistema, pois o Safari não oferece Web Bluetooth.
-Esse fluxo exige uma impressora compatível com AirPrint na rede; ele não conecta
-impressoras Bluetooth pelo navegador. O iOS não informa ao site se o papel foi
-impresso, então confira a saída na impressora. Se ela não aparecer no menu,
-confirme o suporte a AirPrint e que o aparelho e a impressora estão na mesma
-rede, ou use um app iOS compatível do fabricante.
+durante o envio de uma nota pode interromper a impressão. No iPad/Safari, os pedidos são gravados no servidor e entram na fila de impressão. A comunicação Bluetooth é responsabilidade da ponte ESP32; o navegador não acessa diretamente a impressora.
 
 Em hospedagem HTTPS, defina `SESSION_COOKIE_SECURE=true`, `FLASK_DEBUG=false`,
 uma `FLASK_SECRET_KEY` persistente e credenciais fortes; não use o servidor
