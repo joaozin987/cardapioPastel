@@ -117,6 +117,7 @@ bool httpRequest(const String& method, const String& path, const String& body, S
 }
 
 bool findPrinterCharacteristic() {
+  printerChannel = nullptr;
   BLEScan* scan = BLEDevice::getScan();
   scan->setActiveScan(true);
   scan->setInterval(100);
@@ -145,13 +146,18 @@ bool findPrinterCharacteristic() {
   if (!printerClient) printerClient = BLEDevice::createClient();
   if (!printerClient->connect(target)) {
     scan->clearResults();
+    printerChannel = nullptr;
     Serial.println("Falha ao conectar ao dispositivo BLE.");
     return false;
   }
   scan->clearResults();
 
   std::map<std::string, BLERemoteService*>* services = printerClient->getServices();
-  if (!services) return false;
+  if (!services) {
+    printerClient->disconnect();
+    printerChannel = nullptr;
+    return false;
+  }
   for (auto serviceIt = services->begin(); serviceIt != services->end(); ++serviceIt) {
     std::map<std::string, BLERemoteCharacteristic*>* characteristics =
       serviceIt->second->getCharacteristics();
