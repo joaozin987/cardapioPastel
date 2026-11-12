@@ -11,7 +11,7 @@
 #include <BLEClient.h>
 #include <BLERemoteService.h>
 #include <BLERemoteCharacteristic.h>
-#include "secrets.h"
+#include "../secrets.h"
 
 #ifndef API_BASE_URL
 #define API_BASE_URL "https://cardapiopastel-production.up.railway.app"
