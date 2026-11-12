@@ -173,16 +173,16 @@ std::vector<uint8_t> makeReceipt(JsonObject payload) {
   appendText(out, order + "\n");
   out.push_back(0x1B); out.push_back(0x61); out.push_back(0x00);
   appendText(out, "--------------------------------\n");
-  appendText(out, "Local: " + String((const char*)payload["mesa"] | "") + "\n");
-  appendText(out, String((const char*)payload["criado_em"] | "") + "\n");
+  appendText(out, "Local: " + String(payload["mesa"] | "") + "\n");
+  appendText(out, String(payload["criado_em"] | "") + "\n");
   appendText(out, "--------------------------------\n");
   JsonArray items = payload["itens"].as<JsonArray>();
   for (JsonObject item : items) {
     String line = String((int)item["quantidade"]) + "x " +
-                  String((const char*)item["nome"] | "");
+                  String(item["nome"] | "");
     appendText(out, line + "\n");
   }
-  String note = String((const char*)payload["observacao"] | "");
+  String note = String(payload["observacao"] | "");
   if (note.length()) appendText(out, "Obs: " + note + "\n");
   appendText(out, "--------------------------------\nObrigado!\n\n\n");
   out.push_back(0x1D); out.push_back(0x56); out.push_back(0x00);
