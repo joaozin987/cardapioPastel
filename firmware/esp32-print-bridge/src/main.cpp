@@ -3,6 +3,8 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <vector>
+#include <map>
 #include <BLEDevice.h>
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
@@ -230,6 +232,11 @@ void reportResult(int jobId, bool success, const String& error) {
 }
 
 void processOneJob() {
+  // Não reserva pedidos enquanto a impressora estiver desligada ou fora de alcance.
+  if (!printerClient || !printerClient->isConnected() || !printerChannel) {
+    if (!findPrinterCharacteristic()) return;
+  }
+
   String response;
   String path = "/api/print-agent/jobs/next?station_id=" + String(STATION_ID);
   if (!httpRequest("GET", path, "", response)) return;
@@ -248,15 +255,9 @@ void processOneJob() {
                 (int)(payload["pedido_id"] | 0), jobId);
   if (!jobId || payload.isNull()) return;
 
-  bool ok = false;
-  String error;
-  if (findPrinterCharacteristic()) {
-    std::vector<uint8_t> receipt = makeReceipt(payload);
-    ok = writePrinterBytes(receipt);
-    if (!ok) error = "A conexão BLE caiu durante o envio dos dados.";
-  } else {
-    error = "Não foi possível conectar à impressora BLE ou localizar característica gravável.";
-  }
+  std::vector<uint8_t> receipt = makeReceipt(payload);
+  bool ok = writePrinterBytes(receipt);
+  String error = ok ? "" : "A conexão BLE caiu durante o envio dos dados.";
   reportResult(jobId, ok, error);
   if (ok) Serial.println("Bytes enviados. Confirme fisicamente a saída do papel.");
 }
