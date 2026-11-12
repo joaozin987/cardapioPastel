@@ -463,7 +463,7 @@ button.title=connected?"Ponte ESP32 disponível":reconnecting?"Verificando comun
 button.setAttribute("aria-label",button.title);
 button.setAttribute("aria-pressed",connected?"true":"false")
 }
-btConn=async function(){
+window.btConn = async function(){
 toast("A conexão Bluetooth é feita pela ponte ESP32. Os pedidos são enviados automaticamente para a fila.");
 return false
 };
