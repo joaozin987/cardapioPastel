@@ -6,8 +6,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
 
-from PIL import Image
-
 import database
 import print_bridge
 
@@ -32,31 +30,10 @@ def firebase_response(value, etag=None):
 
 
 class PrintBridgeServiceTests(unittest.TestCase):
-    def test_large_receipt_keeps_dividers_quantities_and_long_product_names(self):
-        separator = "-" * 32
-        text = (
-            "    D&A LANCHE'S\n    PEDIDO #7\n    15/11/2026  14:16\n"
-            + separator + "\n2x Pastel de carne de sol\n   c/ queijo e catupiry\n"
-            + separator + "\n    Obrigado!\n"
-        )
-        lines = print_bridge._large_receipt_lines(text)
-        self.assertEqual(sum(line.get("divider", False) for line in lines), 2)
-        self.assertTrue(all(line["doubleSize"] and len(line["text"]) <= 16
-                            for line in lines if "text" in line))
-        items = [line["text"] for line in lines if line.get("align") == "left"]
-        self.assertTrue(items[0].startswith("2x "))
-        self.assertTrue(all(line.startswith("   ") for line in items[1:]))
-        self.assertEqual(" ".join(line.strip() for line in items),
-                         "2x Pastel de carne de sol c/ queijo e catupiry")
-
-
     def setUp(self):
         self.urlopen_patch = patch.object(print_bridge, "urlopen")
         self.urlopen = self.urlopen_patch.start()
         self.addCleanup(self.urlopen_patch.stop)
-        self.upload_patch = patch.object(print_bridge, "_upload_receipt", side_effect=URLError("attachment unavailable"))
-        self.upload_patch.start()
-        self.addCleanup(self.upload_patch.stop)
 
     def configure_responses(self, session=None, previous=None, etag='"test-etag"'):
         if session is None:
@@ -73,36 +50,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
     def assert_no_put(self):
         self.assertTrue(all(request.get_method() != "PUT" for request in self.requests()))
 
-    def test_uploads_27_point_receipt_before_posting_one_image_job(self):
-        self.upload_patch.stop()
-        url = "https://example.com/receipt.png"
-        self.urlopen.side_effect = [
-            firebase_response({"availableDevices": {PRINTER: "Synthetic printer"}}),
-            firebase_response(None, '"existing"'),
-            firebase_response({"downloadUrl": url}),
-            firebase_response({"status": "pending"}),
-        ]
-        text = "PEDIDO #7\n" + "-" * 32 + "\n1x Pastel bacon com queijo\n"
-        print_bridge.send_to_android(CODE, text)
-
-        requests = self.requests()
-        self.assertEqual([request.get_method() for request in requests], ["GET", "GET", "POST", "PUT"])
-        upload = requests[2]
-        self.assertEqual(upload.full_url,
-                         f"https://printbridge.bluetoothprinter.in/api/v1/print-from-anywhere/{CODE}/attachments")
-        body = upload.data.split(b"\r\n\r\n", 1)[1]
-        png = body.rsplit(b"\r\n--", 1)[0]
-        with Image.open(BytesIO(png)) as image:
-            self.assertEqual(image.format, "PNG")
-            self.assertEqual(image.width, 384)
-            self.assertGreater(image.height, 300)
-            self.assertEqual(image.getextrema(), (0, 255))
-        payload = json.loads(requests[3].data)
-        self.assertEqual(payload["image"], {"imageUrl": url, "mimeType": "image/png"})
-        self.assertNotIn("richText", payload)
-        self.assertEqual(dict(requests[3].header_items()).get("If-match"), '"existing"')
-
-    def test_fixed_rest_urls_exact_etag_and_large_text_payload(self):
+    def test_fixed_rest_urls_exact_etag_and_plain_text_payload(self):
         etag = '"opaque+/etag=="'
         self.configure_responses(etag=etag)
         with patch.object(print_bridge.time, "time", return_value=1234.567):
@@ -118,11 +66,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
         self.assertNotIn("authorization", headers[2])
         self.assertEqual(json.loads(requests[2].data), {
             "status": "pending", "createdAt": 1234567,
-            "richText": [
-                {"text": "PEDIDO #7", "align": "center", "bold": True, "underline": False, "doubleSize": True},
-                {"text": "1x Pastel", "align": "center", "bold": False, "underline": False, "doubleSize": True},
-            ],
-            "strictMode": True, "paperWidthMm": 58, "targetDevice": PRINTER,
+            "text": "PEDIDO #7\n1x Pastel", "targetDevice": PRINTER,
         })
         self.assertTrue(all(call.kwargs == {"timeout": 8} for call in self.urlopen.call_args_list))
 
