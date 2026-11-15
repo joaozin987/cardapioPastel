@@ -19,7 +19,6 @@ main{max-width:1000px;margin:0 auto;padding:14px 14px 120px}
 .cats{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px}
 .cats button{flex:none;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:99px;font-weight:800;font-size:15px;cursor:pointer}
 .cats button.on{background:var(--ink);color:var(--gold);border-color:var(--ink)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
 .item{background:var(--card);border:2px solid var(--line);border-left:6px solid var(--gold);border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;min-height:110px}
 .item.has{border-color:var(--gold);background:var(--line)}
 .item b{font-size:16px}.item>span{color:var(--gold2);font-weight:800}
@@ -103,7 +102,6 @@ header>.auth-badge span{max-width:96px;overflow-wrap:anywhere}
 .tabs{gap:8px;margin:8px 10px 0;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 2px 8px rgba(60,40,0,.08);scrollbar-width:thin}
 .tabs button{flex:0 0 auto;min-height:48px;padding:10px 14px}
 main{padding:12px 10px 150px}
-.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .item{min-width:0;min-height:0;padding:9px;gap:6px;border-radius:14px}
 .item .top{align-items:center;gap:6px}
 .item .tile{width:64px;height:64px;border-radius:11px;font-size:30px}
@@ -143,18 +141,13 @@ header>.auth-badge button{min-height:36px}
 .oc .row>span:last-child{width:100%;justify-content:space-between;margin-left:0}
 }
 @media(min-width:420px) and (max-width:680px){
-.grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 .item{padding:8px}
 .item .top{align-items:flex-start;flex-direction:column}
 .item .tile{width:48px;height:48px;font-size:24px}
 }
 @media(min-width:681px) and (max-width:900px){
 main{padding-left:18px;padding-right:18px}
-.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .sums{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
-}
-@media(min-width:901px){
-#grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 .hint{background:var(--line);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;margin-bottom:12px}
 .refresh-data{width:100%;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;font-weight:800;cursor:pointer}
@@ -190,6 +183,7 @@ header .auth-badge{flex:0 1 auto;max-width:45%;min-width:0;margin-left:8px;font-
   .printer-slot{order:1;flex:0 1 auto;max-width:34%;margin:0 12px}
 }
 .tabs button+button,.cats button+button{margin-left:6px}
+/* As margens dos cards definem o espaçamento e mantêm a grade compatível com iOS 9. */
 .grid{display:flex;flex-wrap:wrap;margin:-5px}
 .grid>.item,.grid>.pc{width:calc(50% - 10px);min-width:0;margin:5px}
 @media(min-width:700px){.grid>.item,.grid>.pc{width:calc(33.333% - 10px)}}
