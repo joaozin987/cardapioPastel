@@ -223,19 +223,19 @@ main{padding-bottom:150px}
 .oc .row>span:last-child{flex:none}
 .toast{top:12px;top:calc(12px + env(safe-area-inset-top,0px))}
 #largeReceipt{display:none}
-@page thermal-receipt{size:58mm 105mm;margin:2mm}
+@page thermal-receipt{size:58mm 160mm;margin:2mm}
 @media print{
   html.thermal-print,html.thermal-print body{margin:0;padding:0;background:#fff;color:#000}
   .thermal-print body>*{display:none!important}
-  .thermal-print #largeReceipt{display:block!important;page:thermal-receipt;width:46mm;max-width:100%;margin:0;padding:0;background:#fff;color:#000;font:16pt/1.2 Arial,sans-serif}
+  .thermal-print #largeReceipt{display:block!important;page:thermal-receipt;width:46mm;max-width:100%;margin:0;padding:0;background:#fff;color:#000;font:24pt/1.12 Arial,sans-serif}
   #largeReceipt h1,#largeReceipt h2,#largeReceipt p{margin:0;text-align:center}
-  #largeReceipt h1{font-size:15pt}
-  #largeReceipt h2{font-size:21pt}
-  #largeReceipt .receipt-meta{font-size:12pt}
+  #largeReceipt h1{font-size:17pt}
+  #largeReceipt h2{font-size:28pt}
+  #largeReceipt .receipt-meta{font-size:14pt}
   #largeReceipt hr{border:0;border-top:1px dashed #000;margin:2mm 0}
   #largeReceipt .receipt-item{display:flex;align-items:flex-start;margin:0 0 2mm;page-break-inside:avoid}
   #largeReceipt .receipt-quantity{flex:none;margin-right:2mm;font-weight:bold}
-  #largeReceipt .receipt-name{min-width:0;word-wrap:break-word}
+  #largeReceipt .receipt-name{min-width:0;word-wrap:break-word;font-weight:700}
 }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/dialog-polyfill@0.5.6/dist/dialog-polyfill.css">
@@ -262,8 +262,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <main>
 <section class="print-prepared" id="androidPrintSaved" hidden>
 <p id="androidPrintMessage" role="status" aria-live="polite"></p>
-<button class="btn" id="androidPrintLarge" type="button" onclick="printLargeAndroidReceipt()">Imprimir nota com letra maior</button>
-<button class="btn alt" id="androidPrintOpen" type="button" onclick="openAndroidPrint()">Abrir Bluetooth-USB Thermal Printer+</button>
+<button class="btn" id="androidPrintLarge" type="button" onclick="printLargeAndroidReceipt()">Imprimir nota</button>
 </section>
 <section class="view on" id="v1">
 <details id="printerSettings" class="print-choice">
@@ -648,8 +647,6 @@ function resetPreparedPrints(){
 PRINT_PREPARATION++;PRINT_PREPARING=false;
 ANDROID_PRINT=null;
 $("androidPrintSaved").hidden=true;
-$("androidPrintOpen").hidden=false;
-$("androidPrintLarge").hidden=false;
 if(window.PrintBridge)window.PrintBridge.reset()
 }
 function isAndroidDevice(){return /Android/i.test(navigator.userAgent)}
@@ -687,22 +684,10 @@ else settings.setAttribute("open","");
 }
 function prepareAndroidPrint(order,reprint){
 if(!isAndroidDevice())throw new Error("Use o envio via Android neste aparelho.");
-var text=String(ticketText(order,reprint)).replace(/[\x00-\x09\x0b-\x1f\x7f]/g,"");
-var url="btprinterplus://print?content="+encodeURIComponent(text);
-ANDROID_PRINT={order:order,url:url.length<=2000?url:null,reprint:reprint};
-$("androidPrintMessage").textContent="Pedido #"+order.id+" salvo. Na impressão com letra maior, selecione Bluetooth-USB Thermal Printer+ e papel de 58 mm.";
-$("androidPrintOpen").hidden=!ANDROID_PRINT.url;
+ANDROID_PRINT={order:order,reprint:reprint};
+$("androidPrintMessage").textContent="Pedido #"+order.id+" salvo. Selecione Bluetooth-USB Thermal Printer+ e papel de 58 mm na impressão.";
 $("androidPrintSaved").hidden=false;
 $("androidPrintSaved").scrollIntoView();
-}
-function openAndroidPrint(){
-var prepared=ANDROID_PRINT;
-if(!prepared||!prepared.url||$("printDestination").value!=="android_app"||!canPrintSavedOrder(prepared.order))return;
-ANDROID_PRINT=null;
-$("androidPrintOpen").hidden=true;
-$("androidPrintLarge").hidden=true;
-$("androidPrintMessage").textContent="Abertura solicitada. Confira o aplicativo e o papel antes de tocar em Reimprimir.";
-window.location.href=prepared.url;
 }
 function printLargeAndroidReceipt(){
 var prepared=ANDROID_PRINT;

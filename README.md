@@ -187,7 +187,8 @@ com o serviço parado e após validar os dados que precisam ser preservados.
 
 No Android conectado à térmica, selecione **Neste Android** em **Configurar
 impressora**. Configure a impressora padrão no aplicativo, faça o pedido e toque
-em **Abrir Bluetooth-USB Thermal Printer+** depois que o pedido for salvo.
+em **Imprimir nota** depois que o pedido for salvo. Na tela de impressão do
+Android, selecione o serviço **Bluetooth-USB Thermal Printer+** e papel de 58 mm.
 
 No iPad, iPhone ou computador, use **iPad, iPhone ou computador via Android**.
 O Bluetooth-USB Thermal Printer+ recebe a nota no Android conectado à térmica.
@@ -226,7 +227,8 @@ ao Android, inclusive ao reimprimir pedidos desse destino. Pedidos antigos de We
 
 O endpoint autenticado/CSRF `/api/pedidos/<id>/impressao/android` valida estação,
 cancelamento, código e texto (máximo 4.000 caracteres). O servidor usa o contrato
-Firebase documentado pelo fabricante, com host fixo, sessão existente, impressora
+Firebase documentado pelo fabricante, enviando linhas em tamanho duplo no modo
+Strict, com host fixo, sessão existente, impressora
 determinada e PUT condicional por ETag. Uma impressão pendente não é sobrescrita.
 Não há fila local, novo cadastro, reenvio automático ou alteração de `impresso`.
 HTTP 202 significa **enviado ao serviço**, não confirmação de saída de papel.
