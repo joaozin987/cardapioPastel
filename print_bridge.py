@@ -1,12 +1,52 @@
 """Quick Print oficial: um código temporário, sem chaves ou SDK no navegador."""
 import json
 import time
+import textwrap
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
 class PrintBridgeError(Exception):
     pass
+
+
+def _large_receipt_lines(text):
+    """Converte a nota de 32 colunas em linhas grandes para a térmica de 58 mm."""
+    segments = []
+    section = 0
+    for line in text.splitlines():
+        line = line.rstrip()
+        if not line.strip():
+            continue
+        if line.strip() == "-" * 32:
+            segments.append({"divider": True})
+            section += 1
+            continue
+
+        is_item = section == 1
+        indent = len(line) - len(line.lstrip())
+        content = line.strip()
+        quantity, separator, _ = content.partition(" ")
+        if is_item and separator and quantity.endswith("x") and quantity[:-1].isdigit():
+            indent = len(quantity) + 1
+            initial_indent = ""
+        else:
+            initial_indent = " " * min(indent, 5) if is_item else ""
+
+        for part in textwrap.wrap(
+            content,
+            width=16,
+            initial_indent=initial_indent,
+            subsequent_indent=" " * min(indent, 5) if is_item else "",
+        ):
+            segments.append({
+                "text": part,
+                "align": "left" if is_item else "center",
+                "bold": is_item or content.startswith("PEDIDO #"),
+                "underline": False,
+                "doubleSize": True,
+            })
+    return segments
 
 
 def send_to_android(code, text):
@@ -44,7 +84,12 @@ def send_to_android(code, text):
             raise PrintBridgeError("O Android ainda tem uma impressão pendente. Confira o aparelho antes de reenviar.")
         if not etag:
             raise PrintBridgeError("O serviço não confirmou disponibilidade. Nenhum novo envio foi feito.")
-        job = {"status": "pending", "createdAt": int(time.time() * 1000), "text": text}
+        job = {
+            "status": "pending",
+            "createdAt": int(time.time() * 1000),
+            "richText": _large_receipt_lines(text),
+            "strictMode": False,
+        }
         if target:
             job["targetDevice"] = target
         # If-Match evita sobrescrever um trabalho recebido depois da consulta.
