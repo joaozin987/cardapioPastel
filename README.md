@@ -183,7 +183,16 @@ Uma reversão deve preservar o campo e não reativar a fila antiga. Restaurar um
 backup de banco perde os pedidos criados depois daquela cópia; faça isso somente
 com o serviço parado e após validar os dados que precisam ser preservados.
 
-## Teste real: iPad via Android
+## Imprimir com Bluetooth-USB Thermal Printer+
+
+No Android conectado à térmica, selecione **Neste Android** em **Configurar
+impressora**. Configure a impressora padrão no aplicativo, faça o pedido e toque
+em **Abrir Bluetooth-USB Thermal Printer+** depois que o pedido for salvo.
+
+No iPad, iPhone ou computador, use **iPad, iPhone ou computador via Android**.
+O Bluetooth-USB Thermal Printer+ recebe a nota no Android conectado à térmica.
+
+### Envio via Android pelo Print Bridge
 
 O iPad envia pela internet ao Print Bridge; o aplicativo Android recebe e imprime
 pela conexão Bluetooth. O Android e o servidor precisam ter internet. Nenhum
@@ -192,12 +201,11 @@ aplicativo é necessário no iPad, e os aparelhos não precisam estar na mesma r
 1. No Android, use **Bluetooth-USB Thermal Printer+**, da **Techpuram**:
    <https://play.google.com/store/apps/details?id=com.iyaltamizh.app.btprinter>.
    O guia detalha a recepção remota nesse aplicativo. Conecte a térmica e confirme
-   uma impressão pelo app; a função **Print From Web** do Simple Bluetooth Printer
-   não comprova a presença do menu que gera o código remoto na versão instalada.
+   uma impressão pelo app.
 2. Abra **Developer Space → Print From Anywhere / Quick Print** (Print Bridge).
    Mantenha essa tela aberta e anote o código temporário de 12 dígitos.
 3. No iPad, abra o D&A, entre na estação e escolha **Configurar impressora →
-   iPad via Android**. Digite o código no campo destacado.
+   iPad, iPhone ou computador via Android**. Digite o código no campo destacado.
    **Enviar código** confere os 12 dígitos somente na página, sem imprimir nem
    consultar o Android; a comunicação continua ocorrendo ao imprimir o pedido.
 4. Selecione os itens e toque em **Imprimir pedido**. A página permanece no
@@ -214,8 +222,7 @@ de API no servidor e não foi incluído neste teste.
 O adaptador ES5 `static/print-bridge.js` reutiliza `ticketText()` e o transporte
 do aplicativo; os pedidos continuam registrados como `simple_bluetooth`, sem
 migração de banco. A configuração atual decide entre abrir o app local ou enviar
-ao Android, inclusive ao reimprimir pedidos desse destino. Web Bluetooth mantém
-seu próprio destino. Falha no envio preserva o pedido e o estoque já descontado.
+ao Android, inclusive ao reimprimir pedidos desse destino. Pedidos antigos de Web Bluetooth podem ser reimpressos na opção **Neste Android**. Falha no envio preserva o pedido e o estoque já descontado.
 
 O endpoint autenticado/CSRF `/api/pedidos/<id>/impressao/android` valida estação,
 cancelamento, código e texto (máximo 4.000 caracteres). O servidor usa o contrato
