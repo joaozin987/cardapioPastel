@@ -196,7 +196,19 @@ header .auth-badge{flex:0 1 auto;max-width:45%;min-width:0;margin-left:8px;font-
 .item{min-height:0;justify-content:flex-start;padding:10px;word-wrap:break-word}
 .item .top{align-items:flex-start;flex-direction:row;flex-wrap:wrap;margin-bottom:6px;gap:0}
 .item .tile,.pc .tile{position:relative;width:56px;height:56px;border-radius:10px;background:#f2e7cf;color:#735920}
-.tile svg{display:block;width:28px;height:28px}
+.menu-icon{display:block;flex:none;color:#704718}
+.tile .menu-icon{width:40px;height:40px}
+.cats .menu-icon{width:22px;height:22px;margin-right:7px}
+.cats button{min-height:44px;gap:0}
+.cats button.on .menu-icon{color:#f6e3b5}
+.item .tile-pastel,.pc .tile-pastel,.item .tile-coxinha,.pc .tile-coxinha{background:#fff0cf}
+.item .tile-pizza,.pc .tile-pizza,.item .tile-lasagna,.pc .tile-lasagna{background:#fae5d6}
+.item .tile-cane,.pc .tile-cane,.item .tile-bottle,.pc .tile-bottle{background:#edf0d6}
+.item .tile-juice,.pc .tile-juice{background:#ffedce}
+.item .tile-drink,.pc .tile-drink,.item .tile-water,.pc .tile-water{background:#e5f0f5}
+.item .tile-can,.pc .tile-can{background:#f9e2dc}
+.tile-cane .menu-icon,.tile-bottle .menu-icon{color:#435a2e}
+.tile-water .menu-icon,.tile-drink .menu-icon{color:#315970}
 .tile img{position:absolute;top:0;left:0;width:100%;height:100%;background:#f2e7cf}
 .item .pv{max-width:100%;white-space:normal;margin:0 0 4px 4px;padding:5px 7px;font-size:13px}
 .item b,.item .ds{display:block;overflow:visible;-webkit-line-clamp:unset}
@@ -297,7 +309,14 @@ function toast(t){var e=$("toast");e.textContent=t;e.style.display="block";setTi
 async function go(n){[1,3,4].forEach(function(i){$("v"+i).className="view"+(n==i?" on":"");$("t"+i).className=n==i?"on":""});$("bar").style.display=n==1?"flex":"none";if(n==1){try{await loadProducts();drawCats();sum()}catch(e){console.error(e);toast("Erro ao atualizar cardápio: "+e.message)}}if(n==3)drawHist();if(n==4)drawProds()}
 function cats(){var c=["Todos"];MENU.forEach(function(m){if(m.on&&c.indexOf(m.c)<0)c.push(m.c)});return c}
 function allcats(){var c=[];MENU.forEach(function(m){if(c.indexOf(m.c)<0)c.push(m.c)});return c}
-function drawCats(){var c=cats();if(c.indexOf(cat)<0)cat="Todos";$("cats").innerHTML=c.map(function(x){return '<button class="'+(x==cat?"on":"")+'" data-c="'+x+'" onclick="setCat(this.dataset.c)">'+(x=="Todos"?"🍴":(EM[x]||"🍽️"))+' '+x+'</button>'}).join("")}
+function drawCats(){
+  var categories=cats();
+  if(categories.indexOf(cat)<0)cat="Todos";
+  $("cats").innerHTML=categories.map(function(category){
+    var active=category===cat;
+    return '<button type="button" class="'+(active?"on":"")+'" aria-pressed="'+active+'" data-c="'+escapePrintText(category)+'" onclick="setCat(this.getAttribute(\'data-c\'))">'+menuIconSvg(categoryIcon(category))+'<span>'+escapePrintText(category)+'</span></button>';
+  }).join("");
+}
 function setCat(c){cat=c;drawCats();drawGrid()}
 function drawGrid(){$("grid").innerHTML=MENU.filter(function(m){return m.on&&(cat=="Todos"||m.c==cat)&&m.n.toLowerCase().indexOf($("sr").value.toLowerCase())>=0}).map(function(m){var q=cart[m.id]||0,hs=m.e!=null,left=hs?m.e-q:0,noPrice=m.p==null;return '<div class="item'+(q?' has':'')+'"><div class="top">'+productTile(m)+'<div class="pv">'+(noPrice?'Preço a definir':money(m.p))+'</div></div><div><div class="ct">'+escapePrintText(m.c)+'</div><b>'+escapePrintText(m.n)+'</b><div class="ds">'+escapePrintText(m.d||"")+'</div></div><div class="product-controls">'+(noPrice?'<span class="stk lo">Defina o preço para vender</span>':hs?(left<=0?'<span class="stk no">Esgotado</span>':left<=5?'<span class="stk lo">Estoque baixo: restam '+left+'</span>':'<span class="stk ok">'+left+' em estoque</span>'):'<span class="stk ok">Disponível</span>')+'<div class="st"><button onclick="chg('+m.id+',-1)"'+(q?'':' disabled')+'>−</button><b>'+q+'</b><button class="p" onclick="chg('+m.id+',1)"'+(noPrice||hs&&left<=0?' disabled':'')+'>+</button></div></div></div>'}).join("")}
 function chg(id,d){var pm=P(id);if(d>0&&pm.p==null){toast("Defina o preço do produto antes de vender");return}if(d>0&&pm.e!=null&&(cart[id]||0)>=pm.e){toast("Sem estoque");return}cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];saveCart();sum()}
@@ -312,23 +331,62 @@ function sum(){
   updateReprintButton();
   drawGrid();
 }
-var EM={"Pastéis":"🥟","Coxinhas":"🍗","Pizzas":"🍕","Bebidas":"🥤"};
-var productIcons={
-  "Pastéis":'<path d="M3 16a9 9 0 0 1 18 0H3Zm3 0v2m4-2v2m4-2v2m4-2v2"/>',
-  "Coxinhas":'<path d="M12 3c2 5 6 7 6 12a6 6 0 0 1-12 0c0-5 4-7 6-12Z"/><path d="M9 15c0 2 1 3 3 3"/>',
-  "Pizzas":'<path d="M3 5a17 17 0 0 1 18 0L12 21 3 5Zm2 3a13 13 0 0 1 14 0"/><circle cx="12" cy="12" r="1"/>',
-  "Bebidas":'<path d="M6 8h12l-2 13H8L6 8Zm7 0 2-5h4"/>'
+var menuIcons={
+  all:'<path d="M4 5h9v9H4zM19 5h9v9h-9zM4 20h9v9H4zM19 20h9v9h-9z" fill="#f2cc79"/>',
+  pastel:'<g transform="rotate(-12 16 16)"><path d="M7 4h18l2 2v20l-2 2H7l-2-2V6z" fill="#f6b950"/><rect x="9" y="8" width="14" height="16" rx="3" fill="#ffe09b"/><path d="M9 4v2m5-2v2m5-2v2m5-2v2M9 26v2m5-2v2m5-2v2m5-2v2M5 10h2m-2 6h2m-2 6h2m18-12h2m-2 6h2m-2 6h2"/></g>',
+  coxinha:'<path d="M16 3c2 5 10 10 11 17 1 6-4 9-11 9S4 26 5 20C6 13 14 8 16 3Z" fill="#f3ad53"/><path d="M10 19l1-2m3 7 2 1m5-7 1 2m-7-8h1"/>',
+  pizza:'<path d="M4 7Q16 0 28 7L16 29Z" fill="#ffd378"/><path d="M4 7Q16 0 28 7l-3 5q-9-5-18 0z" fill="#e9a053"/><circle cx="13" cy="13" r="2" fill="#db6b52"/><circle cx="21" cy="14" r="2" fill="#db6b52"/><circle cx="16" cy="21" r="2" fill="#db6b52"/>',
+  cane:'<path d="M5 27L9 7l3 .6L8 27Z" fill="#90c781"/><path d="M8 13l3 .6m-4 6 3 .6M10 8c-1-4 2-5 5-5-1 3-2 4-5 5Z" fill="#79ad64"/><path d="M13 11h15l-2 16H15z" fill="#f5f0c5"/><path d="M14 17h13l-1 10H15z" fill="#b3c979"/><path d="M21 20l2-14h5m-9 15h1m2 3h1"/>',
+  juice:'<path d="M7 10h18l-2 17H9z" fill="#fff3ca"/><path d="M8 15h16l-1 12H9z" fill="#ffbb57"/><path d="M17 22 20 6h5"/><path d="M23 10a5 5 0 0 1 7 5h-6z" fill="#ffac54"/>',
+  drink:'<path d="M7 9h18l-2 18H9z" fill="#b9dcec"/><path d="M6 7h20v4H6z" fill="#e6f3fa"/><path d="M18 7l2-4h5m-4 13-2 5h-5l-2-5h9z" fill="#eff8ff"/>',
+  can:'<rect x="8" y="5" width="16" height="23" rx="4" fill="#ed927f"/><path d="M9 7h14m-14 19h14M15 5V3h5"/><path d="M9 16c5-5 9 4 14 0" stroke="#fff5e7" stroke-width="3"/>',
+  bottle:'<path d="M13 5h6v6c0 2 4 3 4 7v8c0 2-2 3-4 3h-6c-2 0-4-1-4-3v-8c0-4 4-5 4-7z" fill="#a8cf88"/><path d="M12 4h8v4h-8z" fill="#e8dfa0"/><path d="M9 17h14v7H9z" fill="#f4edcc"/>',
+  water:'<path d="M16 3C12 9 7 15 7 21a9 9 0 0 0 18 0c0-6-5-12-9-18Z" fill="#a7d6ef"/><path d="M11 21c0 3 2 4 4 5" stroke="#f4fbff" stroke-width="2.5"/>',
+  lasagna:'<path d="m4 10 16-5 8 5-15 6Z" fill="#e58d65"/><path d="M4 10v13l9 5 15-6V10l-15 6z" fill="#f8c566"/><path d="m4 14 9 5 15-6m-24 6 9 5 15-6" stroke="#a54e38"/><path d="M9 10l3-1m6 1 4-1" stroke="#fff1bd" stroke-width="2.5"/>',
+  food:'<path d="M5 22h22m-20 0a9 9 0 0 1 18 0m-9-9V9m-2 0h4" fill="#f4d3a1"/>'
 };
+function menuKey(value){
+  return String(value||"").toLowerCase()
+    .replace(/[áàâãä]/g,"a").replace(/[éèêë]/g,"e").replace(/[íìîï]/g,"i")
+    .replace(/[óòôõö]/g,"o").replace(/[úùûü]/g,"u").replace(/ç/g,"c")
+    .replace(/[^a-z0-9]+/g," ").trim();
+}
+function categoryIcon(category){
+  var key=menuKey(category);
+  if(key==="todos")return "all";
+  if(/\b(pastel|pasteis)\b/.test(key))return "pastel";
+  if(/\bcoxinhas?\b/.test(key))return "coxinha";
+  if(/\bpizzas?\b/.test(key))return "pizza";
+  if(/\blasanhas?\b/.test(key))return "lasagna";
+  if(/\b(caldo|caldos|garapa)\b/.test(key))return "cane";
+  if(/\bsucos?\b/.test(key))return "juice";
+  if(/\b(refrigerante|refrigerantes)\b/.test(key))return "can";
+  if(/\bbebidas?\b/.test(key))return "drink";
+  return "food";
+}
+function productIcon(product){
+  var name=menuKey(product.n);
+  if(/\b(caldo|garapa)\b/.test(name))return "cane";
+  if(/\bsucos?\b/.test(name))return "juice";
+  if(/\bagua\b/.test(name))return "water";
+  if(/\b(lata|latinha)\b/.test(name))return "can";
+  if(/\b(garrafa|garrafinha|pitulinha|guarana)\b/.test(name))return "bottle";
+  if(/\b(coca|pepsi|fanta|sprite|refrigerante)\b/.test(name))return "can";
+  var named=categoryIcon(name);
+  return named==="food"||named==="all"?categoryIcon(product.c):named;
+}
+function menuIconSvg(icon){
+  return '<svg class="menu-icon" aria-hidden="true" focusable="false" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+menuIcons[icon]+'</svg>';
+}
 function escapePrintText(value){
   return String(value).replace(/[&<>"']/g,function(character){
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character];
   });
 }
 function productTile(product){
-  var icon=Object.prototype.hasOwnProperty.call(productIcons,product.c)?productIcons[product.c]:
-    '<path d="M3 16h18M5 16a7 7 0 0 1 14 0m-7-7V7m-8 12h16"/>';
+  var icon=productIcon(product);
   var image=product.img?'<img src="'+escapePrintText(product.img)+'" alt="" onerror="this.style.display=&quot;none&quot;">':"";
-  return '<div class="tile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+icon+'</svg>'+image+'</div>';
+  return '<div class="tile tile-'+icon+'" aria-hidden="true">'+menuIconSvg(icon)+image+'</div>';
 }
 var EX=null;
 function tgl(id){EX=EX==id?null:id;drawHist()}
@@ -579,7 +637,7 @@ if(SENDING)return;
 resetPreparedPrints();setPrinterButton(false);
 try{if(AUTH)localStorage.setItem("da-lanches-printer:"+AUTH.station_id,$("printDestination").value)}catch(error){}
 $("printBridgeSettings").style.display=$("printDestination").value==="print_bridge"?"block":"none";
-$("printDestinationHelp").textContent=$("printDestination").value==="print_bridge"?"O pedido segue pela internet para o Android e sai na impressora conectada a ele. Teste gratuito limitado a 10 impressões por aparelho.":$("printDestination").value==="simple_bluetooth"?"Impressão automática no aplicativo. Configure nele a impressora da estação.":"Requer navegador e impressora BLE compatíveis.";
+$("printDestinationHelp").textContent=$("printDestination").value==="print_bridge"?"O pedido segue pela internet para o Android e sai na impressora conectada a ele. Teste gratuito limitado a 10 impressões por aparelho.":$("printDestination").value==="simple_bluetooth"?"Impressão automática no aplicativo. Para letras maiores no iPhone, selecione o tamanho da fonte no modo Strict do Simple Bluetooth Printer.":"Requer navegador e impressora BLE compatíveis. As letras da nota saem com altura dobrada.";
 drawHist()
 }
 function orderPrintButton(order){

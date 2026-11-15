@@ -42,21 +42,22 @@
     var stamp = pad(date.getDate(), 2) + '/' + pad(date.getMonth() + 1, 2) + '/' + date.getFullYear() +
       '  ' + pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2);
     var lines = [
-      C("D&A LANCHE'S", width),
-      '\x03' + C('PEDIDO #' + pad(order.id, 3), width),
-      '\x02' + C(stamp, width)
+      '\x03' + C("D&A LANCHE'S", width),
+      C('PEDIDO #' + pad(order.id, 3), width),
+      C(stamp, width)
     ];
     if (reprint) lines.push(C('REIMPRESSAO', width));
-    lines.push(divider);
+    lines.push('\x02' + divider);
     order.itens.forEach(function (item) {
       var quantity = item.q + 'x ';
       var itemLines = wrap(printName(item.n).trim(), width - quantity.length);
       if (!itemLines.length) itemLines.push('');
       itemLines.forEach(function (line, index) {
-        lines.push((index === 0 ? quantity : spaces(quantity.length)) + line);
+        var size = index === 0 ? '\x03' : '';
+        lines.push(size + (index === 0 ? quantity : spaces(quantity.length)) + line);
       });
     });
-    lines.push(divider, C('Obrigado!', width));
-    return lines.join('\n') + '\n';
+    lines.push('\x02' + divider, '\x03' + C('Obrigado!', width));
+    return lines.join('\n') + '\n\x02';
   };
 }(window));
