@@ -1,9 +1,14 @@
 """Quick Print oficial: um código temporário, sem chaves ou SDK no navegador."""
+from io import BytesIO
 import json
 import time
 import textwrap
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+from uuid import uuid4
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 class PrintBridgeError(Exception):
@@ -49,6 +54,91 @@ def _large_receipt_lines(text):
     return segments
 
 
+def _receipt_png(text):
+    # Uma térmica de 203 dpi usa aproximadamente 8 pixels por milímetro.
+    width, margin = 384, 10
+    body_font = ImageFont.load_default(size=round(34 * 203 / 72))
+    meta_font = ImageFont.load_default(size=round(16 * 203 / 72))
+    section = 0
+    blocks = []
+    for line in text.splitlines():
+        content = line.strip()
+        if not content:
+            continue
+        if content == "-" * 32:
+            blocks.append((None, False, None))
+            section += 1
+        elif section == 1 and line[0].isspace() and blocks and blocks[-1][0] is not None:
+            old, _, _ = blocks[-1]
+            blocks[-1] = (old + " " + content, False, body_font)
+        else:
+            font = body_font if section == 1 or content.startswith("PEDIDO #") else meta_font
+            blocks.append((content, section != 1, font))
+
+    rows = []
+    height = margin
+    for content, centered, font in blocks:
+        if content is None:
+            rows.append((None, False, None, height + 7))
+            height += 16
+            continue
+        line = ""
+        steps = []
+        for word in content.split():
+            candidate = (line + " " + word).strip()
+            if line and font.getlength(candidate) > width - 2 * margin:
+                steps.append(line)
+                line = ""
+            while font.getlength(word) > width - 2 * margin:
+                end = 1
+                while font.getlength(word[:end + 1]) <= width - 2 * margin:
+                    end += 1
+                steps.append(word[:end])
+                word = word[end:]
+            line = (line + " " + word).strip()
+        if line:
+            steps.append(line)
+        for line in steps:
+            rows.append((line, centered, font, height))
+            height += sum(font.getmetrics()) + 4
+        height += 5
+        if height > 16000:
+            raise ValueError("Nota longa demais para enviar como imagem.")
+
+    image = Image.new("L", (width, height + margin), 255)
+    draw = ImageDraw.Draw(image)
+    for line, centered, font, y in rows:
+        if line is None:
+            draw.line((margin, y, width - margin, y), fill=0, width=2)
+        else:
+            x = (width - font.getlength(line)) / 2 if centered else margin
+            draw.text((x, y), line, font=font, fill=0, anchor="lt")
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def _upload_receipt(code, text):
+    png = _receipt_png(text)
+    boundary = uuid4().hex
+    data = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="pedido.png"\r\n'
+        "Content-Type: image/png\r\n\r\n"
+    ).encode("ascii") + png + f"\r\n--{boundary}--\r\n".encode("ascii")
+    request = Request(
+        f"https://printbridge.bluetoothprinter.in/api/v1/print-from-anywhere/{code}/attachments",
+        data=data,
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    with urlopen(request, timeout=8) as response:
+        result = json.loads(response.read(65537))
+    url = result.get("downloadUrl") if isinstance(result, dict) else None
+    if not isinstance(url, str) or urlsplit(url).scheme != "https" or not urlsplit(url).hostname:
+        raise ValueError("O serviço não devolveu o endereço da nota.")
+    return {"imageUrl": url, "mimeType": "image/png"}
+
+
 def send_to_android(code, text):
     # O host é fixo; somente os 12 dígitos validados entram no caminho.
     if not isinstance(code, str) or len(code) != 12 or not code.isascii() or not code.isdigit():
@@ -87,10 +177,12 @@ def send_to_android(code, text):
         job = {
             "status": "pending",
             "createdAt": int(time.time() * 1000),
-            "richText": _large_receipt_lines(text),
-            "strictMode": True,
-            "paperWidthMm": 58,
         }
+        try:
+            job["image"] = _upload_receipt(code, text)
+        except (URLError, TimeoutError, OSError, ValueError):
+            # Somente o anexo falhou: nenhum job de impressão foi enviado ainda.
+            job.update(richText=_large_receipt_lines(text), strictMode=True, paperWidthMm=58)
         if target:
             job["targetDevice"] = target
         # If-Match evita sobrescrever um trabalho recebido depois da consulta.
