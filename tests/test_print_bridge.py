@@ -73,7 +73,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
     def assert_no_put(self):
         self.assertTrue(all(request.get_method() != "PUT" for request in self.requests()))
 
-    def test_uploads_34_point_receipt_before_posting_one_image_job(self):
+    def test_uploads_30_point_receipt_before_posting_one_image_job(self):
         self.upload_patch.stop()
         url = "https://example.com/receipt.png"
         self.urlopen.side_effect = [

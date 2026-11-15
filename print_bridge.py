@@ -57,7 +57,7 @@ def _large_receipt_lines(text):
 def _receipt_png(text):
     # Uma térmica de 203 dpi usa aproximadamente 8 pixels por milímetro.
     width, margin = 384, 10
-    body_font = ImageFont.load_default(size=round(34 * 203 / 72))
+    body_font = ImageFont.load_default(size=round(30 * 203 / 72))
     meta_font = ImageFont.load_default(size=round(16 * 203 / 72))
     section = 0
     blocks = []
