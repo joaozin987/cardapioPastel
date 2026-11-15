@@ -4,7 +4,6 @@
 
   function spaces(count) { return new Array(Math.max(0, count) + 1).join(' '); }
   function C(text, width) { return spaces(Math.floor((width - text.length) / 2)) + text; }
-  function R(text, width) { text = String(text); return spaces(width - text.length) + text; }
   function wrap(text, width) {
     var words = text.split(/\s+/), lines = [], line = '';
     words.forEach(function (word) {
@@ -32,16 +31,32 @@
     return Object.prototype.hasOwnProperty.call(names, name) ? names[name] :
       name.replace(/^Pastel de /i, 'Pastel ').replace(/^Pizza brotinho de /i, 'Pizza ').replace(/ com /gi, ' c/ ');
   }
+  function pad(value, width) {
+    var text = String(value);
+    return new Array(Math.max(0, width - text.length) + 1).join('0') + text;
+  }
+
   root.ticketText = function (order, reprint) {
-    var width = 32, divider = '--------------------------------\n';
-    var id = String(order.id); while (id.length < 3) id = '0' + id;
-    var date = order.t.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', year: 'numeric'});
-    var time = order.t.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-    var text = '\x01' + C("D&A LANCHE'S", 16) + '\n' + C('PEDIDO #' + id, 16) + '\n' +
-      (reprint ? C('REIMPRESSAO', 16) + '\n' : '') + '\x02' + C(date, width) + '\n' + C(time, width) + '\n' + divider + '\x03';
+    var width = 32, divider = '--------------------------------';
+    var date = order.t;
+    var stamp = pad(date.getDate(), 2) + '/' + pad(date.getMonth() + 1, 2) + '/' + date.getFullYear() +
+      '  ' + pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2);
+    var lines = [
+      C("D&A LANCHE'S", width),
+      '\x03' + C('PEDIDO #' + pad(order.id, 3), width),
+      '\x02' + C(stamp, width)
+    ];
+    if (reprint) lines.push(C('REIMPRESSAO', width));
+    lines.push(divider);
     order.itens.forEach(function (item) {
-      text += '\n' + wrap(item.q + 'x ' + printName(item.n), width).map(function (line) { return R(line, width); }).join('\n') + '\n';
+      var quantity = item.q + 'x ';
+      var itemLines = wrap(printName(item.n).trim(), width - quantity.length);
+      if (!itemLines.length) itemLines.push('');
+      itemLines.forEach(function (line, index) {
+        lines.push((index === 0 ? quantity : spaces(quantity.length)) + line);
+      });
     });
-    return text + divider + C('Obrigado!', width);
+    lines.push(divider, C('Obrigado!', width));
+    return lines.join('\n') + '\n';
   };
 }(window));
