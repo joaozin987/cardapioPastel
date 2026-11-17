@@ -463,7 +463,7 @@ function saveP() {
                 case 1:
                     _a.trys.push([1, 3, 4, 5]);
                     body = new FormData();
-                    Object.keys(data).forEach(function (key) { body.append(key, data[key]); });
+                    Object.keys(data).forEach(function (key) { body.append(key, data[key] == null ? "" : data[key]); });
                     body.append("remove_image", REMOVE_PRODUCT_IMAGE ? "true" : "false");
                     if ($("pi").files[0])
                         body.append("image", $("pi").files[0]);

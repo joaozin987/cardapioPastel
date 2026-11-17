@@ -141,7 +141,7 @@ if(!n||!c||(priceText&&(isNaN(p)||p<0))){toast("Confira nome, categoria e preço
 var ev=$("pe").value.trim(),e=ev===""?null:parseInt(ev,10);if(ev!==""&&(isNaN(e)||e<0)){toast("Estoque inválido");return}
 var data={n:n,c:c,p:p,e:e,d:EID&&P(EID)?P(EID).d:"",on:$("pa").checked};if(EID){data.id=EID}
 PRODUCT_SAVING=true;CATALOG_VERSION++;
-try{var body=new FormData();Object.keys(data).forEach(function(key){body.append(key,data[key])});body.append("remove_image",REMOVE_PRODUCT_IMAGE?"true":"false");if($("pi").files[0])body.append("image",$("pi").files[0]);var result=await api("/api/produtos",{method:EID?"PUT":"POST",body:body}),product=result.produto,index=MENU.findIndex(function(m){return m.id==product.id});CATALOG_VERSION++;if(index<0)MENU.push(product);else MENU[index]=product;NID=Math.max(NID,product.id+1);cat="Todos";$("sr").value="";pd.close();drawProds();drawCats();sum();toast("Produto salvo e cardápio atualizado")}catch(err){toast("Erro ao salvar produto: "+err.message)}finally{PRODUCT_SAVING=false}}
+try{var body=new FormData();Object.keys(data).forEach(function(key){body.append(key,data[key]==null?"":data[key])});body.append("remove_image",REMOVE_PRODUCT_IMAGE?"true":"false");if($("pi").files[0])body.append("image",$("pi").files[0]);var result=await api("/api/produtos",{method:EID?"PUT":"POST",body:body}),product=result.produto,index=MENU.findIndex(function(m){return m.id==product.id});CATALOG_VERSION++;if(index<0)MENU.push(product);else MENU[index]=product;NID=Math.max(NID,product.id+1);cat="Todos";$("sr").value="";pd.close();drawProds();drawCats();sum();toast("Produto salvo e cardápio atualizado")}catch(err){toast("Erro ao salvar produto: "+err.message)}finally{PRODUCT_SAVING=false}}
 
 
 
