@@ -48,6 +48,19 @@ class PrintBridgeServiceTests(unittest.TestCase):
                          "2x Pastel de carne de sol c/ queijo e catupiry")
 
 
+    def test_older_page_prints_misto_on_one_line_without_date_or_time(self):
+        separator = "-" * 32
+        text = (
+            "D&A LANCHE'S\nPEDIDO #7\n16/11/2026  18:38\n18:38\n"
+            + separator + "\n2x Pastel de misto\n" + separator + "\nObrigado!\n"
+        )
+        lines = print_bridge._large_receipt_lines(text)
+        self.assertEqual(
+            [line["text"] for line in lines if "text" in line],
+            ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!"],
+        )
+        self.assertTrue(lines[3]["doubleSize"])
+
     def setUp(self):
         self.urlopen_patch = patch.object(print_bridge, "urlopen")
         self.urlopen = self.urlopen_patch.start()

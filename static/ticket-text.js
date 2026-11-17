@@ -27,7 +27,8 @@
       'Pizza brotinho de mussarela': 'Pizza mussarela',
       'Pizza brotinho de frango com catupiry': 'Pizza frango c/ catupiry'
     };
-    name = String(name).replace(/[\x00-\x1f\x7f]/g, ' ');
+    name = String(name).replace(/[\x00-\x1f\x7f]/g, ' ').trim();
+    if (/^pastel\s+(?:de\s+)?misto$/i.test(name)) return 'Misto';
     return Object.prototype.hasOwnProperty.call(names, name) ? names[name] :
       name.replace(/^Pastel de /i, 'Pastel ').replace(/^Pizza brotinho de /i, 'Pizza ').replace(/ com /gi, ' c/ ');
   }
@@ -38,13 +39,9 @@
 
   root.ticketText = function (order, reprint) {
     var width = 32, divider = '--------------------------------';
-    var date = order.t;
-    var stamp = pad(date.getDate(), 2) + '/' + pad(date.getMonth() + 1, 2) + '/' + date.getFullYear() +
-      '  ' + pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2);
     var lines = [
       '\x03' + C("D&A LANCHE'S", width),
-      C('PEDIDO #' + pad(order.id, 3), width),
-      C(stamp, width)
+      C('PEDIDO #' + pad(order.id, 3), width)
     ];
     if (reprint) lines.push(C('REIMPRESSAO', width));
     lines.push('\x02' + divider);
