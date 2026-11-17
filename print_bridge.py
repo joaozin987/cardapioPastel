@@ -1,5 +1,6 @@
 """Quick Print oficial: um código temporário, sem chaves ou SDK no navegador."""
 import json
+import unicodedata
 import re
 import time
 import textwrap
@@ -28,12 +29,12 @@ def _large_receipt_lines(text):
 
         is_item = section == 1
         indent = len(line) - len(line.lstrip())
-        content = line.strip()
+        content = unicodedata.normalize("NFKD", line.strip()).encode("ascii", "ignore").decode("ascii")
         # Versões abertas antes da atualização ainda podem enviar a data e hora.
         if section == 0 and re.fullmatch(r"(?:\d{1,2}/\d{1,2}/\d{4}(?:\s+\d{1,2}:\d{2})?|\d{1,2}:\d{2})", content):
             continue
         if is_item:
-            content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?mist(?:ão|ao)$", r"\1 Mistão", content, flags=re.IGNORECASE)
+            content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?mist(?:ão|ao)$", r"\1 Mistao", content, flags=re.IGNORECASE)
             content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?mist[ou]$", r"\1 Misto", content, flags=re.IGNORECASE)
         quantity, separator, _ = content.partition(" ")
         if is_item and separator and quantity.endswith("x") and quantity[:-1].isdigit():

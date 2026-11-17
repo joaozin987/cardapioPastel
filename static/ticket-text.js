@@ -2,6 +2,19 @@
   'use strict';
   if (typeof root.ticketText !== 'undefined') return;
 
+  function printerText(text) {
+    var accents = {
+      'á':'a','à':'a','â':'a','ã':'a','ä':'a','Á':'A','À':'A','Â':'A','Ã':'A','Ä':'A',
+      'é':'e','è':'e','ê':'e','ë':'e','É':'E','È':'E','Ê':'E','Ë':'E',
+      'í':'i','ì':'i','î':'i','ï':'i','Í':'I','Ì':'I','Î':'I','Ï':'I',
+      'ó':'o','ò':'o','ô':'o','õ':'o','ö':'o','Ó':'O','Ò':'O','Ô':'O','Õ':'O','Ö':'O',
+      'ú':'u','ù':'u','û':'u','ü':'u','Ú':'U','Ù':'U','Û':'U','Ü':'U',
+      'ç':'c','Ç':'C','ñ':'n','Ñ':'N'
+    };
+    return String(text).replace(/[^\x00-\x7f]/g, function (character) {
+      return accents[character] || '';
+    });
+  }
   function spaces(count) { return new Array(Math.max(0, count) + 1).join(' '); }
   function C(text, width) { return spaces(Math.floor((width - text.length) / 2)) + text; }
   function wrap(text, width) {
@@ -62,6 +75,6 @@
       ' ' + pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2);
     lines.push('\x02' + divider);
     if (stamp) lines.push(C(stamp, width));
-    return lines.join('\n') + '\n\x02';
+    return printerText(lines.join('\n') + '\n\x02');
   };
 }(window));

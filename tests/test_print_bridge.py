@@ -71,8 +71,19 @@ class PrintBridgeServiceTests(unittest.TestCase):
                 text += f"{quantity}x {name}\n" + separator + "\n17/11/2026 18:38\n"
                 lines = print_bridge._large_receipt_lines(text)
                 items = [line for line in lines if line.get("align") == "left"]
-                self.assertEqual([line["text"] for line in items], [f"{quantity}x Mistão"])
+                self.assertEqual([line["text"] for line in items], [f"{quantity}x Mistao"])
                 self.assertFalse(items[0]["doubleSize"])
+
+    def test_printer_segments_use_ascii_for_mistao_and_accented_names(self):
+        separator = "-" * 32
+        for name in ("Pastel mistão", "Pastel mistao", "Mistão", "Mistao"):
+            text = "D&A LANCHE'S\nPEDIDO #2\n" + separator + "\n2x " + name + "\n" + separator + "\n17/11/2026 18:38\n"
+            lines = print_bridge._large_receipt_lines(text)
+            self.assertEqual([line["text"] for line in lines if line.get("align") == "left"], ["2x Mistao"])
+            self.assertTrue(all(line.get("text", "").isascii() for line in lines))
+        text = "D&A LANCHE'S\nPEDIDO #2\n" + separator + "\n1x Pão de queijo\n"
+        lines = print_bridge._large_receipt_lines(text)
+        self.assertEqual(" ".join(line["text"].strip() for line in lines if line.get("align") == "left"), "1x Pao de queijo")
 
     def setUp(self):
         self.urlopen_patch = patch.object(print_bridge, "urlopen")
