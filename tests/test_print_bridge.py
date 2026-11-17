@@ -59,7 +59,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
             [line["text"] for line in lines if "text" in line],
             ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!"],
         )
-        self.assertFalse(lines[3]["doubleSize"])
+        self.assertTrue(lines[3]["doubleSize"])
         self.assertFalse(lines[0]["doubleSize"])
         self.assertFalse(lines[1]["doubleSize"])
 
@@ -72,7 +72,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
                 lines = print_bridge._large_receipt_lines(text)
                 items = [line for line in lines if line.get("align") == "left"]
                 self.assertEqual([line["text"] for line in items], [f"{quantity}x Mistao"])
-                self.assertFalse(items[0]["doubleSize"])
+                self.assertTrue(items[0]["doubleSize"])
 
     def test_printer_segments_use_ascii_for_mistao_and_accented_names(self):
         separator = "-" * 32
