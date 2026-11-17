@@ -1,4 +1,6 @@
 import tempfile
+import base64
+import gzip
 import unittest
 import sqlite3
 import os
@@ -72,6 +74,33 @@ class DatabaseTests(unittest.TestCase):
 
     def login_admin(self):
         self.login("admin", "test-admin-pin")
+
+    def test_volume_bootstrap_restores_stock_once_and_never_overwrites_edits(self):
+        conn = database.get_connection()
+        with conn:
+            conn.execute("UPDATE produtos SET estoque=71 WHERE id=1")
+        conn.close()
+        snapshot = base64.b64encode(gzip.compress(self.db_path.read_bytes())).decode("ascii")
+        restored_path = Path(self.temp_dir.name) / "volume" / "da_lanches.db"
+        with patch.object(database, "DB_PATH", restored_path), patch.dict(
+            os.environ, {"DATABASE_INITIAL_SNAPSHOT": snapshot}
+        ):
+            database.init_db()
+            conn = database.get_connection()
+            self.assertEqual(conn.execute("SELECT estoque FROM produtos WHERE id=1").fetchone()[0], 71)
+            with conn:
+                conn.execute("UPDATE produtos SET estoque=89 WHERE id=1")
+            conn.close()
+            database.init_db()
+            conn = database.get_connection()
+            self.assertEqual(conn.execute("SELECT estoque FROM produtos WHERE id=1").fetchone()[0], 89)
+            conn.close()
+
+    def test_stock_responses_are_never_cached(self):
+        for path in ("/api/produtos", "/api/dados"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("no-store", response.headers["Cache-Control"])
 
     def test_init_db_seeds_catalog_once_and_preserves_stock(self):
         conn = database.get_connection()

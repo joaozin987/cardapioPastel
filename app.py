@@ -287,6 +287,13 @@ def carregar_pedido(conn, pedido):
             "impressao_destino": "simple_bluetooth" if pedido["impressao_destino"] in {"padrao", "airprint"} else pedido["impressao_destino"],
             "itens": [{"produto_id": x["produto_id"], "n": x["nome_produto"], "q": x["quantidade"], "p": float(x["preco_unitario"]), "ok": bool(x["pronto"])} for x in itens]}
 
+@app.after_request
+def prevent_stale_api_data(response):
+    if request.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, private"
+    return response
+
+
 @app.get("/")
 def home():
     return send_file(PAGE_PATH)

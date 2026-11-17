@@ -28,6 +28,7 @@
       'Pizza brotinho de frango com catupiry': 'Pizza frango c/ catupiry'
     };
     name = String(name).replace(/[\x00-\x1f\x7f]/g, ' ').trim();
+    if (/^pastel\s+(?:de\s+)?mist(?:ão|ao)$/i.test(name)) return 'Mistão';
     if (/^pastel\s+(?:de\s+)?mist[ou]$/i.test(name)) return 'Misto';
     return Object.prototype.hasOwnProperty.call(names, name) ? names[name] :
       name.replace(/^Pastel de /i, 'Pastel ').replace(/^Pizza brotinho de /i, 'Pizza ').replace(/ com /gi, ' c/ ');
@@ -45,7 +46,8 @@
     ];
     if (reprint) lines.push(C('REIMPRESSAO', width));
     lines.push('\x02' + divider);
-    order.itens.forEach(function (item) {
+    order.itens.forEach(function (item, itemIndex) {
+      if (itemIndex) lines.push("");
       var quantity = item.q + 'x ';
       var itemLines = wrap(printName(item.n).trim(), width - quantity.length);
       if (!itemLines.length) itemLines.push('');

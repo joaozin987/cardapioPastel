@@ -15,6 +15,8 @@ def _large_receipt_lines(text):
     """Converte a nota de 32 colunas em linhas grandes para a térmica de 58 mm."""
     segments = []
     section = 0
+    small_item = False
+    item_count = 0
     for line in text.splitlines():
         line = line.rstrip()
         if not line.strip():
@@ -31,9 +33,15 @@ def _large_receipt_lines(text):
         if section == 0 and re.fullmatch(r"(?:\d{1,2}/\d{1,2}/\d{4}(?:\s+\d{1,2}:\d{2})?|\d{1,2}:\d{2})", content):
             continue
         if is_item:
+            content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?mist(?:ão|ao)$", r"\1 Mistão", content, flags=re.IGNORECASE)
             content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?mist[ou]$", r"\1 Misto", content, flags=re.IGNORECASE)
         quantity, separator, _ = content.partition(" ")
         if is_item and separator and quantity.endswith("x") and quantity[:-1].isdigit():
+            name = content.split(" ", 1)[1].casefold()
+            small_item = name.startswith("pastel ") or name in {"misto", "mistão", "mistao", "queijo", "frango com queijo", "frango com catupiry"}
+            if item_count:
+                segments.append({"text": "", "align": "left", "doubleSize": False})
+            item_count += 1
             indent = len(quantity) + 1
             initial_indent = ""
         else:
@@ -41,7 +49,7 @@ def _large_receipt_lines(text):
 
         for part in textwrap.wrap(
             content,
-            width=14 if is_item else 32,
+            width=(28 if small_item else 14) if is_item else 32,
             initial_indent=initial_indent,
             subsequent_indent=" " * min(indent, 5) if is_item else "",
         ):
@@ -50,7 +58,7 @@ def _large_receipt_lines(text):
                 "align": "left" if is_item else "center",
                 "bold": is_item or content.startswith("PEDIDO #"),
                 "underline": False,
-                "doubleSize": is_item,
+                "doubleSize": is_item and not small_item,
             })
     return segments
 

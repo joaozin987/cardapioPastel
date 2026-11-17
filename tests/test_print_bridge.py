@@ -59,9 +59,20 @@ class PrintBridgeServiceTests(unittest.TestCase):
             [line["text"] for line in lines if "text" in line],
             ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!"],
         )
-        self.assertTrue(lines[3]["doubleSize"])
+        self.assertFalse(lines[3]["doubleSize"])
         self.assertFalse(lines[0]["doubleSize"])
         self.assertFalse(lines[1]["doubleSize"])
+
+    def test_mistao_keeps_name_and_quantity_on_one_large_line(self):
+        separator = "-" * 32
+        for name in ("Pastel mistão", "Pastel de mistão", "Pastel mistao", "Mistão"):
+            for quantity in (1, 2, 12):
+                text = "D&A LANCHE'S\nPEDIDO #7\n" + separator + "\n"
+                text += f"{quantity}x {name}\n" + separator + "\n17/11/2026 18:38\n"
+                lines = print_bridge._large_receipt_lines(text)
+                items = [line for line in lines if line.get("align") == "left"]
+                self.assertEqual([line["text"] for line in items], [f"{quantity}x Mistão"])
+                self.assertFalse(items[0]["doubleSize"])
 
     def setUp(self):
         self.urlopen_patch = patch.object(print_bridge, "urlopen")

@@ -1,10 +1,15 @@
 from pathlib import Path
+import base64
+import gzip
+import os
 from contextlib import closing
 import sqlite3
 from tempfile import NamedTemporaryFile
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "instance" / "da_lanches.db"
+DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") or BASE_DIR / "instance")
+DB_PATH = Path(os.environ.get("DATABASE_PATH") or DATA_DIR / "da_lanches.db")
+
 
 MENU_INICIAL = {
     "Pastéis": [("Pastel de queijo", 9, "Massa crocante com queijo derretido"), ("Pastel misto", 9, "Queijo e presunto"), ("Pastel de carne de sol com queijo", 9, "Carne de sol desfiada com queijo"), ("Pastel de frango com catupiry", 9, "Frango desfiado com catupiry cremoso"), ("Pastel de frango com queijo", 9, "Frango desfiado com queijo"), ("Pastel de calabresa com queijo", 9, "Calabresa fatiada com queijo")],
@@ -45,6 +50,20 @@ def get_connection():
     return conn
 
 def init_db():
+    # Na migração para o volume, restaura somente quando ainda não existe banco.
+    snapshot = os.environ.get("DATABASE_INITIAL_SNAPSHOT")
+    if not DB_PATH.exists() and snapshot:
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with NamedTemporaryFile(dir=DB_PATH.parent, suffix=".db", delete=False) as temp:
+            temp_path = Path(temp.name)
+            temp.write(gzip.decompress(base64.b64decode(snapshot, validate=True)))
+        try:
+            with closing(sqlite3.connect(temp_path)) as restored:
+                if restored.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                    raise RuntimeError("A cópia inicial do banco está inválida.")
+            os.replace(temp_path, DB_PATH)
+        finally:
+            temp_path.unlink(missing_ok=True)
     conn = get_connection()
     try:
         order_columns = {row["name"] for row in conn.execute("PRAGMA table_info(pedidos)")}

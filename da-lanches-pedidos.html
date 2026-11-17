@@ -289,13 +289,13 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="/static/print-bridge.js"></script>
 <script type="text/babel" data-presets="es2015,stage-3">
 
-var NID=1,MENU=[],CF=null,cart={},orders=[],hist=[],seq=1,cat="Todos",EID=0,SENDING=false,REMOVE_PRODUCT_IMAGE=false,IMAGE_PREVIEW_URL=null;
+var NID=1,MENU=[],CF=null,cart={},orders=[],hist=[],seq=1,cat="Todos",EID=0,SENDING=false,REMOVE_PRODUCT_IMAGE=false,IMAGE_PREVIEW_URL=null,PRODUCT_SAVING=false,CATALOG_VERSION=0;
 var $=function(i){return document.getElementById(i)},pd=$("pd");
 var money=function(v){return "R$ "+v.toFixed(2).replace(".",",")};
 async function api(path,options){var r=await fetch(path,options||{}),data=await r.json();if(!r.ok)throw new Error(data.erro||"Falha ao comunicar com o servidor.");return data}
 function pedidoFromApi(o){o.t=new Date(String(o.t).replace(" ","T"));return o}
-async function loadData(){resetPreparedPrints();var data=await api("/api/dados");MENU=data.produtos;orders=data.pedidos.map(pedidoFromApi);hist=[];NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1);seq=orders.reduce(function(n,o){return Math.max(n,o.id+1)},1)}
-async function loadProducts(){var data=await api("/api/produtos");MENU=data.produtos;NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1)}
+async function loadData(){resetPreparedPrints();var version=++CATALOG_VERSION,data=await api("/api/dados");if(version!==CATALOG_VERSION||PRODUCT_SAVING)return;MENU=data.produtos;orders=data.pedidos.map(pedidoFromApi);hist=[];NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1);seq=orders.reduce(function(n,o){return Math.max(n,o.id+1)},1)}
+async function loadProducts(){var version=++CATALOG_VERSION,data=await api("/api/produtos");if(version!==CATALOG_VERSION||PRODUCT_SAVING)return;MENU=data.produtos;NID=MENU.reduce(function(n,m){return Math.max(n,m.id+1)},1)}
 async function startApp(){try{await loadData();drawCats();drawGrid();drawHist();hdr()}catch(e){console.error(e);toast("Erro ao carregar o banco: "+e.message)}}
 function P(id){return MENU.filter(function(m){return m.id==id})[0]}
 function cartStorageKey(){return AUTH?"da-lanches-cart:"+AUTH.station_id:null}
@@ -402,7 +402,7 @@ l.forEach(function(o){var k=fd(o);if(!days[k]){days[k]=[];keys.push(k)}days[k].p
 $("hist").innerHTML=keys.length?keys.map(function(k){var a=days[k],v=a.filter(function(o){return!o.cancel});
 return '<div class="dh"><span>'+(k==today?"Hoje · ":"")+k+'</span><span>'+v.length+' pedidos · '+money(v.reduce(function(s,o){return s+tot(o)},0))+'</span></div>'+a.map(function(o){
 return '<div class="oc"><div class="row" onclick="tgl('+o.id+')" style="cursor:pointer"><span><b>Pedido #'+String(o.id).padStart(3,"0")+(o.cancel?' (CANCELADO)':'')+'</b><br><small style="color:var(--mut)">'+o.t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+' · '+o.itens.map(function(x){return x.q+"x "+x.n}).join(", ")+'</small></span><span style="white-space:nowrap"><b'+(o.cancel?' style="text-decoration:line-through"':'')+'>'+money(tot(o))+'</b>'+(o.cancel?'':'<button class="rp" onclick="event.stopPropagation();cancelOrder('+o.id+')">'+(CF==o.id?'Confirmar?':'Cancelar')+'</button>')+'</span></div>'+orderPrintButton(o)+(EX==o.id?det(o):'')+'</div>'}).join("")}).join(""):'<div class="empty">Nenhum pedido encontrado.</div>'}
-function drawProds(){$("prods").innerHTML=MENU.slice().sort(function(a,b){return String(a.updated||"").localeCompare(String(b.updated||""))||a.id-b.id}).map(function(m){return '<div class="pc'+(m.on?'':' off')+'">'+productTile(m)+'<b>'+m.n+'</b><small>'+m.c+(m.e!=null?' · estoque: '+m.e:' · sem controle de estoque')+'</small><span class="pr">'+(m.p==null?'Preço a definir':money(m.p))+'</span><label class="sw"><input type="checkbox" '+(m.on?'checked ':'')+'onchange="tog('+m.id+')">'+(m.on?'Ativo':'Desativado')+'</label><button class="ed" onclick="edit('+m.id+')">✎ Editar</button></div>'}).join("")}
+function drawProds(){$("prods").innerHTML=MENU.slice().sort(function(a,b){return String(b.updated||"").localeCompare(String(a.updated||""))||b.id-a.id}).map(function(m){return '<div class="pc'+(m.on?'':' off')+'">'+productTile(m)+'<b>'+m.n+'</b><small>'+m.c+(m.e!=null?' · estoque: '+m.e:' · sem controle de estoque')+'</small><span class="pr">'+(m.p==null?'Preço a definir':money(m.p))+'</span><label class="sw"><input type="checkbox" '+(m.on?'checked ':'')+'onchange="tog('+m.id+')">'+(m.on?'Ativo':'Desativado')+'</label><button class="ed" onclick="edit('+m.id+')">✎ Editar</button></div>'}).join("")}
 async function tog(id){var m=P(id);try{await api("/api/produtos",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:m.id,n:m.n,c:m.c,d:m.d,p:m.p,e:m.e,on:!m.on})});await loadData();drawProds();drawCats();drawGrid()}catch(e){toast("Erro ao atualizar produto: "+e.message)}}
 function cs(){$("pc").style.display=$("ps").value=="__new"?"block":"none"}
 function showImagePreview(src){var img=$("pimg"),fallback=$("pimgFallback");if(IMAGE_PREVIEW_URL&&src!==IMAGE_PREVIEW_URL){URL.revokeObjectURL(IMAGE_PREVIEW_URL);IMAGE_PREVIEW_URL=null}if(src){img.src=src;img.style.display="block";fallback.style.display="none"}else{img.removeAttribute("src");img.style.display="none";fallback.style.display="";}$("removeProductImageBtn").style.display=src||EID&&P(EID).img?"block":"none"}
@@ -411,11 +411,12 @@ function clearProductImage(){if(IMAGE_PREVIEW_URL){URL.revokeObjectURL(IMAGE_PRE
 function edit(id){EID=id;var m=id?P(id):{n:"",c:allcats()[0],p:null,on:true,img:null};REMOVE_PRODUCT_IMAGE=false;$("pi").value="";$("pdt").textContent=id?"Editar produto":"Novo produto";$("pn").value=m.n;showImagePreview(m.img);
 $("ps").innerHTML=allcats().map(function(c){return '<option'+(c==m.c?' selected':'')+'>'+c+'</option>'}).join("")+'<option value="__new">+ Nova categoria...</option>';cs();$("pc").value="";
 $("pp").value=m.p==null?"":String(m.p.toFixed(2)).replace(".",",");$("pa").checked=m.on;$("pe").value=m.e==null?"":m.e;pd.showModal()}
-async function saveP(){var n=$("pn").value.trim(),c=$("ps").value=="__new"?$("pc").value.trim():$("ps").value,priceText=$("pp").value.trim(),p=priceText?parseFloat(priceText.replace(",",".")):null;
+async function saveP(){if(PRODUCT_SAVING)return;var n=$("pn").value.trim(),c=$("ps").value=="__new"?$("pc").value.trim():$("ps").value,priceText=$("pp").value.trim(),p=priceText?parseFloat(priceText.replace(",",".")):null;
 if(!n||!c||(priceText&&(isNaN(p)||p<0))){toast("Confira nome, categoria e preço");return}
 var ev=$("pe").value.trim(),e=ev===""?null:parseInt(ev,10);if(ev!==""&&(isNaN(e)||e<0)){toast("Estoque inválido");return}
 var data={n:n,c:c,p:p,e:e,d:EID&&P(EID)?P(EID).d:"",on:$("pa").checked};if(EID){data.id=EID}
-try{var body=new FormData();Object.keys(data).forEach(function(key){body.append(key,data[key])});body.append("remove_image",REMOVE_PRODUCT_IMAGE?"true":"false");if($("pi").files[0])body.append("image",$("pi").files[0]);var result=await api("/api/produtos",{method:EID?"PUT":"POST",body:body}),product=result.produto,index=MENU.findIndex(function(m){return m.id==product.id});if(index<0)MENU.push(product);else MENU[index]=product;NID=Math.max(NID,product.id+1);cat="Todos";$("sr").value="";pd.close();drawProds();drawCats();sum();toast("Produto salvo e cardápio atualizado")}catch(err){toast("Erro ao salvar produto: "+err.message)}}
+PRODUCT_SAVING=true;CATALOG_VERSION++;
+try{var body=new FormData();Object.keys(data).forEach(function(key){body.append(key,data[key])});body.append("remove_image",REMOVE_PRODUCT_IMAGE?"true":"false");if($("pi").files[0])body.append("image",$("pi").files[0]);var result=await api("/api/produtos",{method:EID?"PUT":"POST",body:body}),product=result.produto,index=MENU.findIndex(function(m){return m.id==product.id});CATALOG_VERSION++;if(index<0)MENU.push(product);else MENU[index]=product;NID=Math.max(NID,product.id+1);cat="Todos";$("sr").value="";pd.close();drawProds();drawCats();sum();toast("Produto salvo e cardápio atualizado")}catch(err){toast("Erro ao salvar produto: "+err.message)}finally{PRODUCT_SAVING=false}}
 </script>
 <script type="text/babel" data-presets="es2015,stage-3">
 
@@ -571,7 +572,7 @@ document.querySelector("main").insertBefore(button,document.querySelector("main"
 }
 async function refreshAppData(silent){
 if(SENDING){toast("Aguarde a impressão terminar antes de atualizar.");return}
-if(REFRESHING)return;
+if(REFRESHING||PRODUCT_SAVING||$("pd").hasAttribute("open"))return;
 resetPreparedPrints();
 REFRESHING=true;
 var refreshButton=$("refreshDataButton");
@@ -588,6 +589,7 @@ if(cart[id]<=0)delete cart[id]
 });
 saveCart();
 drawCats();drawGrid();drawHist();hdr();sum();
+if(activeTab===4)drawProds();
 if(activeTab===5)await loadAdminSummary();
 if(!silent)toast(" impressora continua conectada.")
 }catch(error){
