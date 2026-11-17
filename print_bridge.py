@@ -31,7 +31,7 @@ def _large_receipt_lines(text):
         if section == 0 and re.fullmatch(r"(?:\d{1,2}/\d{1,2}/\d{4}(?:\s+\d{1,2}:\d{2})?|\d{1,2}:\d{2})", content):
             continue
         if is_item:
-            content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?misto$", r"\1 Misto", content, flags=re.IGNORECASE)
+            content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?mist[ou]$", r"\1 Misto", content, flags=re.IGNORECASE)
         quantity, separator, _ = content.partition(" ")
         if is_item and separator and quantity.endswith("x") and quantity[:-1].isdigit():
             indent = len(quantity) + 1
@@ -41,7 +41,7 @@ def _large_receipt_lines(text):
 
         for part in textwrap.wrap(
             content,
-            width=16,
+            width=14 if is_item else 32,
             initial_indent=initial_indent,
             subsequent_indent=" " * min(indent, 5) if is_item else "",
         ):
@@ -50,7 +50,7 @@ def _large_receipt_lines(text):
                 "align": "left" if is_item else "center",
                 "bold": is_item or content.startswith("PEDIDO #"),
                 "underline": False,
-                "doubleSize": True,
+                "doubleSize": is_item,
             })
     return segments
 

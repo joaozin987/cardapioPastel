@@ -28,7 +28,7 @@
       'Pizza brotinho de frango com catupiry': 'Pizza frango c/ catupiry'
     };
     name = String(name).replace(/[\x00-\x1f\x7f]/g, ' ').trim();
-    if (/^pastel\s+(?:de\s+)?misto$/i.test(name)) return 'Misto';
+    if (/^pastel\s+(?:de\s+)?mist[ou]$/i.test(name)) return 'Misto';
     return Object.prototype.hasOwnProperty.call(names, name) ? names[name] :
       name.replace(/^Pastel de /i, 'Pastel ').replace(/^Pizza brotinho de /i, 'Pizza ').replace(/ com /gi, ' c/ ');
   }
@@ -40,7 +40,7 @@
   root.ticketText = function (order, reprint) {
     var width = 32, divider = '--------------------------------';
     var lines = [
-      '\x03' + C("D&A LANCHE'S", width),
+      '\x02' + C("D&A LANCHE'S", width),
       C('PEDIDO #' + pad(order.id, 3), width)
     ];
     if (reprint) lines.push(C('REIMPRESSAO', width));
@@ -54,7 +54,12 @@
         lines.push(size + (index === 0 ? quantity : spaces(quantity.length)) + line);
       });
     });
-    lines.push('\x02' + divider, '\x03' + C('Obrigado!', width));
+    var date = order.t instanceof Date ? order.t : new Date(String(order.t).replace(" ", "T"));
+    var stamp = isNaN(date.getTime()) ? '' :
+      pad(date.getDate(), 2) + '/' + pad(date.getMonth() + 1, 2) + '/' + date.getFullYear() +
+      ' ' + pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2);
+    lines.push('\x02' + divider);
+    if (stamp) lines.push(C(stamp, width));
     return lines.join('\n') + '\n\x02';
   };
 }(window));

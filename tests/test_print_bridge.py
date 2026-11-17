@@ -39,7 +39,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
         )
         lines = print_bridge._large_receipt_lines(text)
         self.assertEqual(sum(line.get("divider", False) for line in lines), 2)
-        self.assertTrue(all(line["doubleSize"] and len(line["text"]) <= 16
+        self.assertTrue(all(len(line["text"]) <= (14 if line["doubleSize"] else 32)
                             for line in lines if "text" in line))
         items = [line["text"] for line in lines if line.get("align") == "left"]
         self.assertTrue(items[0].startswith("2x "))
@@ -60,6 +60,8 @@ class PrintBridgeServiceTests(unittest.TestCase):
             ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!"],
         )
         self.assertTrue(lines[3]["doubleSize"])
+        self.assertFalse(lines[0]["doubleSize"])
+        self.assertFalse(lines[1]["doubleSize"])
 
     def setUp(self):
         self.urlopen_patch = patch.object(print_bridge, "urlopen")
@@ -98,8 +100,8 @@ class PrintBridgeServiceTests(unittest.TestCase):
         self.assertEqual(json.loads(requests[2].data), {
             "status": "pending", "createdAt": 1234567,
             "richText": [
-                {"text": "PEDIDO #7", "align": "center", "bold": True, "underline": False, "doubleSize": True},
-                {"text": "1x Pastel", "align": "center", "bold": False, "underline": False, "doubleSize": True},
+                {"text": "PEDIDO #7", "align": "center", "bold": True, "underline": False, "doubleSize": False},
+                {"text": "1x Pastel", "align": "center", "bold": False, "underline": False, "doubleSize": False},
             ],
             "strictMode": False, "targetDevice": PRINTER,
         })
