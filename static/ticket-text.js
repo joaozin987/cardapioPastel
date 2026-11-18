@@ -60,9 +60,9 @@
     if (reprint) lines.push(C('REIMPRESSAO', width));
     lines.push('\x02' + divider);
     order.itens.forEach(function (item, itemIndex) {
-      if (itemIndex) lines.push("");
+      if (itemIndex) lines.push("", "");
       var quantity = item.q + 'x ';
-      var itemLines = wrap(printName(item.n).trim(), width - quantity.length);
+      var itemLines = wrap(printerText(printName(item.n)).trim().toUpperCase(), width - quantity.length);
       if (!itemLines.length) itemLines.push('');
       itemLines.forEach(function (line, index) {
         var size = index === 0 ? '\x03' : '';
@@ -79,8 +79,18 @@
   };
 
   root.ticketAppText = function (order, reprint) {
-    // O app instalado imprime algumas marcações como texto literal.
     var plain = root.ticketText(order, reprint).replace(/[\x00-\x09\x0b-\x1f\x7f]/g, '');
-    return plain.replace(/\n+$/, '') + '\n\n\n';
+    var section = 0;
+    var lines = plain.split('\n').map(function (line) {
+      if (line.trim() === '--------------------------------') {
+        section++;
+        return line;
+      }
+      if (section === 1 && line.trim()) {
+        return '**' + line.replace(/\*/g, '') + '**';
+      }
+      return line;
+    });
+    return lines.join('\n').replace(/\n+$/, '') + '\n\n\n';
   };
 }(window));
