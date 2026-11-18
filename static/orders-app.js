@@ -945,7 +945,7 @@ function togglePrinterSettings() {
         settings.setAttribute("open", "");
 }
 function prepareAndroidPrint(order, reprint) {
-    var text = String(ticketText(order, reprint)).replace(/[\x00-\x09\x0b-\x1f\x7f]/g, "");
+    var text = ticketAppText(order, reprint);
     var url = "btprinterplus://print?content=" + encodeURIComponent(text);
     if (url.length > 2000)
         throw new Error("Nota longa para abrir o app. Use o envio via Android.");

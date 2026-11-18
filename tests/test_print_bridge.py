@@ -48,7 +48,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
                          "2x Pastel de carne de sol c/ queijo e catupiry")
 
 
-    def test_older_page_prints_misto_on_one_line_without_date_or_time(self):
+    def test_older_page_prints_misto_with_one_time_in_footer(self):
         separator = "-" * 32
         text = (
             "D&A LANCHE'S\nPEDIDO #7\n16/11/2026  18:38\n18:38\n"
@@ -57,7 +57,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
         lines = print_bridge._large_receipt_lines(text)
         self.assertEqual(
             [line["text"] for line in lines if "text" in line],
-            ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!"],
+            ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!", "18:38"],
         )
         self.assertTrue(lines[3]["doubleSize"])
         self.assertFalse(lines[0]["doubleSize"])
@@ -84,6 +84,17 @@ class PrintBridgeServiceTests(unittest.TestCase):
         text = "D&A LANCHE'S\nPEDIDO #2\n" + separator + "\n1x Pão de queijo\n"
         lines = print_bridge._large_receipt_lines(text)
         self.assertEqual(" ".join(line["text"].strip() for line in lines if line.get("align") == "left"), "1x Pao de queijo")
+
+    def test_many_items_have_one_time_in_the_footer(self):
+        separator = "-" * 32
+        text = "D&A LANCHE'S\nPEDIDO #7\n18/11/2026 17:16\n" + separator + "\n"
+        text += "\n\n".join(f"1x Pastel queijo {index}" for index in range(15))
+        text += "\n" + separator + "\n18/11/2026 17:16\n17:16\n"
+        lines = print_bridge._large_receipt_lines(text)
+        self.assertEqual(sum(line.get("text") == "17:16" for line in lines), 1)
+        self.assertEqual(lines[-1]["text"], "17:16")
+        self.assertTrue(all("18/11/2026" not in line.get("text", "") for line in lines))
+        self.assertEqual(sum(line.get("text", "").startswith("1x ") for line in lines), 15)
 
     def setUp(self):
         self.urlopen_patch = patch.object(print_bridge, "urlopen")
