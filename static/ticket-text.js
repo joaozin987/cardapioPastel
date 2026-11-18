@@ -79,18 +79,8 @@
   };
 
   root.ticketAppText = function (order, reprint) {
+    // O app instalado imprime algumas marcações como texto literal.
     var plain = root.ticketText(order, reprint).replace(/[\x00-\x09\x0b-\x1f\x7f]/g, '');
-    var section = 0;
-    var formatted = plain.split('\n').map(function (line) {
-      if (line.trim() === '--------------------------------') {
-        section++;
-        return '--------------------------------';
-      }
-      if (!line.trim()) return '';
-      // Metadados compactos e todos os produtos com a mesma formatação.
-      if (section !== 1) return '[center][small]' + line.trim() + '[/small][/center]';
-      return '**' + line.replace(/[\[\]*]/g, '') + '**';
-    });
-    return formatted.join('\n').replace(/\n+$/, '') + '\n\n\n';
+    return plain.replace(/\n+$/, '') + '\n\n\n';
   };
 }(window));
