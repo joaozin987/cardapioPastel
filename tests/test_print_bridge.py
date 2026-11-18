@@ -57,7 +57,7 @@ class PrintBridgeServiceTests(unittest.TestCase):
         lines = print_bridge._large_receipt_lines(text)
         self.assertEqual(
             [line["text"] for line in lines if "text" in line],
-            ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!", "18:38"],
+            ["D&A LANCHE'S", "PEDIDO #7", "2x Misto", "Obrigado!", "16/11/2026 18:38"],
         )
         self.assertTrue(lines[3]["doubleSize"])
         self.assertFalse(lines[0]["doubleSize"])
@@ -91,9 +91,9 @@ class PrintBridgeServiceTests(unittest.TestCase):
         text += "\n\n".join(f"1x Pastel queijo {index}" for index in range(15))
         text += "\n" + separator + "\n18/11/2026 17:16\n17:16\n"
         lines = print_bridge._large_receipt_lines(text)
-        self.assertEqual(sum(line.get("text") == "17:16" for line in lines), 1)
-        self.assertEqual(lines[-1]["text"], "17:16")
-        self.assertTrue(all("18/11/2026" not in line.get("text", "") for line in lines))
+        self.assertEqual(sum("17:16" in line.get("text", "") for line in lines), 1)
+        self.assertEqual(lines[-1]["text"], "18/11/2026 17:16")
+        self.assertEqual(sum("18/11/2026" in line.get("text", "") for line in lines), 1)
         self.assertEqual(sum(line.get("text", "").startswith("1x ") for line in lines), 15)
 
     def setUp(self):

@@ -70,7 +70,9 @@
       });
     });
     var date = order.t instanceof Date ? order.t : new Date(String(order.t).replace(" ", "T"));
-    var stamp = isNaN(date.getTime()) ? '' : pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2);
+    var stamp = isNaN(date.getTime()) ? '' :
+      pad(date.getDate(), 2) + '/' + pad(date.getMonth() + 1, 2) + '/' + date.getFullYear() +
+      ' ' + pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2);
     lines.push('\x02' + divider);
     if (stamp) lines.push(C(stamp, width));
     return printerText(lines.join('\n') + '\n\x02');

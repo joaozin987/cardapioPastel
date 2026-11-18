@@ -18,6 +18,7 @@ def _large_receipt_lines(text):
     section = 0
     item_count = 0
     receipt_time = None
+    receipt_date = None
     for line in text.splitlines():
         line = line.rstrip()
         if not line.strip():
@@ -31,11 +32,13 @@ def _large_receipt_lines(text):
         indent = len(line) - len(line.lstrip())
         content = unicodedata.normalize("NFKD", line.strip()).encode("ascii", "ignore").decode("ascii")
         if not is_item:
-            timestamp = re.fullmatch(r"(?:\d{1,2}/\d{1,2}/\d{4}\s+)?(\d{1,2}:\d{2})(?::\d{2})?", content)
+            timestamp = re.fullmatch(r"(?:(\d{1,2}/\d{1,2}/\d{4})\s+)?(\d{1,2}:\d{2})(?::\d{2})?", content)
             if timestamp:
-                receipt_time = timestamp.group(1).zfill(5)
+                receipt_date = timestamp.group(1) or receipt_date
+                receipt_time = timestamp.group(2).zfill(5)
                 continue
             if re.fullmatch(r"\d{1,2}/\d{1,2}/\d{4}", content):
+                receipt_date = content
                 continue
         if is_item:
             content = re.sub(r"^(\d+x)\s+pastel\s+(?:de\s+)?mist(?:ão|ao)$", r"\1 Mistao", content, flags=re.IGNORECASE)
@@ -65,7 +68,8 @@ def _large_receipt_lines(text):
                 "doubleSize": is_item,
             })
     if receipt_time:
-        segments.append({"text": receipt_time, "align": "center", "bold": False, "underline": False, "doubleSize": False})
+        stamp = f"{receipt_date} {receipt_time}" if receipt_date else receipt_time
+        segments.append({"text": stamp, "align": "center", "bold": False, "underline": False, "doubleSize": False})
     return segments
 
 
