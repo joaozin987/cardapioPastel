@@ -54,7 +54,7 @@ main{max-width:1000px;margin:0 auto;padding:14px 14px 120px}
 .printer-feedback-error{color:#b8321f;color:var(--red)}
 @media(max-width:520px){.print-choice summary,.printer-settings-body{padding:16px}.printer-code-row{display:block}.printer-code-submit{width:100%;min-height:54px;margin:10px 0 0}#printBridgeCode{font-size:24px;letter-spacing:2px}}
 .print-prepared{margin:12px 0;padding:12px;border:2px solid var(--gold);border-radius:10px;background:var(--card)}
-.print-prepared[hidden],.print-prepared button[hidden]{display:none}
+.print-prepared[hidden],.print-prepared button[hidden],#androidPrinterSettings[hidden]{display:none}
 dialog{border:3px solid var(--ink);border-radius:16px;background:var(--card);color:var(--ink);width:min(460px,94vw);max-height:92vh;padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.55)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
@@ -250,8 +250,13 @@ document.addEventListener("DOMContentLoaded", function () {
 <summary>Configurar impressora<span class="printer-subtitle">Escolha o método de impressão e configure o aparelho.</span></summary>
 <div class="printer-settings-body">
 <label for="printDestination">Método de impressão</label>
-<select id="printDestination" aria-describedby="printDestinationHelp" onchange="changePrintDestination()"><option value="print_bridge">iPad, iPhone ou computador via Android</option></select>
+<select id="printDestination" aria-describedby="printDestinationHelp" onchange="changePrintDestination()"><option value="print_bridge">iPad, iPhone ou computador via Android</option><option value="android_app">Android direto · impressora pareada</option></select>
 <p id="printDestinationHelp" class="printer-method-help">Use o Bluetooth-USB Thermal Printer+ no Android conectado à impressora.</p>
+<div id="androidPrinterSettings" class="printer-code-panel" hidden>
+<p class="printer-method-help">Use o Bluetooth-USB Thermal Printer+ neste Android.</p>
+<ol class="printer-method-help"><li>Pareie a impressora nas configurações Bluetooth do Android.</li><li>No aplicativo, conecte à impressora pareada e selecione-a como padrão.</li><li>Volte ao catálogo e toque em Imprimir pedido.</li></ol>
+<a class="printer-method-help" href="https://play.google.com/store/apps/details?id=com.iyaltamizh.app.btprinter" target="_blank" rel="noopener">Instalar Bluetooth-USB Thermal Printer+</a>
+</div>
 <div id="printBridgeSettings" class="printer-code-panel" style="display:none">
 <label for="printBridgeCode" class="printer-code-label">Código de 12 dígitos do Android</label>
 <small id="printBridgeHint">Digite os 12 dígitos exibidos em Print From Anywhere no Android. Mantenha essa tela aberta e a impressora conectada.</small>
@@ -285,6 +290,5 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="/static/print-bridge.js"></script>
 
 
-<script src="/static/orders-app.js?v=54f95f62a5cb"></script>
+<script src="/static/orders-app.js?v=33619b8f331f"></script>
 </body></html>
-

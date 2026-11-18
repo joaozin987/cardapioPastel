@@ -902,21 +902,17 @@ function resetPreparedPrints() {
     if (window.PrintBridge)
         window.PrintBridge.reset();
 }
-function isAndroidDevice() { return /Android/i.test(navigator.userAgent); }
+function isAndroidDevice() {
+    return /Android/i.test(navigator.userAgent + " " + (navigator.userAgentData && navigator.userAgentData.platform || ""));
+}
 function restorePrintDestination() {
     var selector = $("printDestination"), android = isAndroidDevice();
-    if (android && !selector.querySelector('option[value="android_app"]')) {
-        var option = document.createElement("option");
-        option.value = "android_app";
-        option.textContent = "Neste Android · Bluetooth-USB Thermal Printer+";
-        selector.appendChild(option);
-    }
     var chosen = null;
     try {
         chosen = localStorage.getItem("da-lanches-printer:" + AUTH.station_id);
     }
     catch (error) { }
-    selector.value = android && chosen !== "print_bridge" ? "android_app" : "print_bridge";
+    selector.value = chosen === "android_app" ? "android_app" : chosen === "print_bridge" ? "print_bridge" : android ? "android_app" : "print_bridge";
 }
 function changePrintDestination() {
     if (SENDING)
@@ -928,9 +924,10 @@ function changePrintDestination() {
     }
     catch (error) { }
     $("printBridgeSettings").style.display = $("printDestination").value === "print_bridge" ? "block" : "none";
+    $("androidPrinterSettings").hidden = $("printDestination").value !== "android_app";
     $("printDestinationHelp").textContent = $("printDestination").value === "print_bridge" ?
         "O pedido segue pela internet para o Android e sai na impressora conectada a ele. Teste gratuito limitado a 10 impressões por aparelho." :
-        "Conecte a impressora no Bluetooth-USB Thermal Printer+. Depois de salvar o pedido, toque em Abrir Bluetooth-USB Thermal Printer+.";
+        "No Android, pareie a impressora por Bluetooth, abra o Bluetooth-USB Thermal Printer+ e selecione essa impressora como padrão. Ao imprimir o pedido, o sistema abre o aplicativo neste aparelho.";
     sum();
     drawHist();
 }
@@ -948,13 +945,11 @@ function togglePrinterSettings() {
         settings.setAttribute("open", "");
 }
 function prepareAndroidPrint(order, reprint) {
-    if (!isAndroidDevice())
-        throw new Error("Use o envio via Android neste aparelho.");
     var text = String(ticketText(order, reprint)).replace(/[\x00-\x09\x0b-\x1f\x7f]/g, "");
     var url = "btprinterplus://print?content=" + encodeURIComponent(text);
     if (url.length > 2000)
         throw new Error("Nota longa para abrir o app. Use o envio via Android.");
-    ANDROID_PRINT = { order: order, url: url };
+    ANDROID_PRINT = { order: order, url: url, lastAttempt: 0 };
     $("androidPrintMessage").textContent = "Pedido #" + order.id + " pronto para abrir no aplicativo.";
     $("androidPrintOpen").hidden = false;
     $("androidPrintSaved").hidden = false;
@@ -964,16 +959,21 @@ function openAndroidPrint() {
     var prepared = ANDROID_PRINT;
     if (!prepared || $("printDestination").value !== "android_app" || !canPrintSavedOrder(prepared.order))
         return;
-    ANDROID_PRINT = null;
-    $("androidPrintOpen").hidden = true;
-    $("androidPrintMessage").textContent = "Abertura solicitada. Confira o aplicativo e o papel antes de tocar em Reimprimir.";
+    var now = new Date().getTime();
+    if (prepared.lastAttempt && now - prepared.lastAttempt < 1500)
+        return;
+    prepared.lastAttempt = now;
+    $("androidPrintOpen").textContent = "Abrir pedido salvo no aplicativo";
+    $("androidPrintMessage").textContent = "Pedido #" + prepared.order.id + " salvo. Impressão solicitada no aplicativo. Se ele não abriu, toque no botão abaixo. Confira o papel antes de repetir.";
     window.location.href = prepared.url;
 }
 function printSavedNow(order, reprint) {
     if (!canPrintSavedOrder(order))
         return;
-    if ($("printDestination").value === "android_app")
-        return prepareAndroidPrint(order, reprint);
+    if ($("printDestination").value === "android_app") {
+        prepareAndroidPrint(order, reprint);
+        return openAndroidPrint();
+    }
     if (!window.PrintBridge)
         throw new Error("A integração não carregou. Recarregue a página e reimprima pelo histórico.");
     return window.PrintBridge.print(order, reprint);
