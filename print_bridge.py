@@ -20,7 +20,7 @@ def _large_receipt_lines(text):
     receipt_time = None
     receipt_date = None
     for line in text.splitlines():
-        line = line.rstrip()
+        line = re.sub(r"\[+/?(?:small|center|right|large)\]+", "", line, flags=re.IGNORECASE).rstrip()
         if not line.strip():
             continue
         if line.strip() == "-" * 32:

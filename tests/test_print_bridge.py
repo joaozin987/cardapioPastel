@@ -96,6 +96,20 @@ class PrintBridgeServiceTests(unittest.TestCase):
         self.assertEqual(sum("18/11/2026" in line.get("text", "") for line in lines), 1)
         self.assertEqual(sum(line.get("text", "").startswith("1x ") for line in lines), 15)
 
+    def test_legacy_small_tags_never_reach_the_printer(self):
+        divider = "-" * 32
+        text = (
+            "[center][small]D&A LANCHE'S[/small][/center]\n"
+            "[small]PEDIDO #115[/small]\n" + divider +
+            "\n1x PASTEL FRANGO C/ CATUPIRY\n" + divider +
+            "\n[[small]]19/11/2026 11:07[[/small]]\n"
+        )
+        lines = print_bridge._large_receipt_lines(text)
+        rendered = "\n".join(line.get("text", "") for line in lines)
+        self.assertNotIn("[", rendered)
+        self.assertNotIn("]", rendered)
+        self.assertEqual(lines[-1]["text"], "19/11/2026 11:07")
+
     def setUp(self):
         self.urlopen_patch = patch.object(print_bridge, "urlopen")
         self.urlopen = self.urlopen_patch.start()

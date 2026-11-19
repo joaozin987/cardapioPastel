@@ -11,7 +11,7 @@
       'ú':'u','ù':'u','û':'u','ü':'u','Ú':'U','Ù':'U','Û':'U','Ü':'U',
       'ç':'c','Ç':'C','ñ':'n','Ñ':'N'
     };
-    return String(text).replace(/[^\x00-\x7f]/g, function (character) {
+    return String(text).replace(/\[+\/?(?:small|center|right|large)\]+/gi, '').replace(/[^\x00-\x7f]/g, function (character) {
       return accents[character] || '';
     });
   }

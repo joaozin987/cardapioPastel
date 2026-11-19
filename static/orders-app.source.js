@@ -367,7 +367,7 @@ function restorePrintDestination(){
 var selector=$("printDestination"),android=isAndroidDevice();
 var chosen=null;
 try{chosen=localStorage.getItem("da-lanches-printer:"+AUTH.station_id)}catch(error){}
-selector.value=chosen==="android_app"?"android_app":chosen==="print_bridge"?"print_bridge":android?"android_app":"print_bridge";
+selector.value=window.location.pathname==="/android"?"android_app":chosen==="android_app"?"android_app":chosen==="print_bridge"?"print_bridge":android?"android_app":"print_bridge";
 }
 function changePrintDestination(){
 if(SENDING)return;

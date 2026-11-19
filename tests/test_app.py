@@ -4,6 +4,14 @@ from app import app
 
 
 class HomeRouteTests(unittest.TestCase):
+    def test_android_entry_serves_current_page_without_cache(self):
+        response = app.test_client().get("/android")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("no-store", response.headers["Cache-Control"])
+        self.assertIn(b"/static/orders-app.js?v=", response.data)
+        self.assertIn(b"androidNativeReceipt", response.data)
+        response.close()
+
     def test_home_serves_the_orders_page(self):
         response = app.test_client().get("/")
 
