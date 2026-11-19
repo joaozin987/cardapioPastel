@@ -85,4 +85,22 @@
       .replace(/\*\*/g, '');
     return text.replace(/\n+$/, '') + '\n\n\n';
   };
+
+  root.ticketAndroidText = function (order, reprint) {
+    var section = 0;
+    // ESC/POS GS ! 1: double height, original width. Flush the line before
+    // resetting. The direct Android app must pass these bytes to the printer.
+    // Print Bridge continues using ticketText, without this transformation.
+    return root.ticketAppText(order, reprint).split('\n').map(function (line) {
+      var content = line.trim();
+      if (content === '--------------------------------') {
+        section++;
+        return line + '\n';
+      }
+      var enlarge = content && (section === 1 ||
+        (section === 2 && /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/.test(content)));
+      return enlarge ? '\x1d!\x01' + line + '\n\x1d!\x00' : line + '\n';
+    }).join('').slice(0, -1);
+  };
 }(window));
+

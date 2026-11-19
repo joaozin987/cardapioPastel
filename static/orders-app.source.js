@@ -405,7 +405,7 @@ if(settings.hasAttribute("open"))settings.removeAttribute("open");
 else settings.setAttribute("open","");
 }
 function prepareAndroidPrint(order,reprint){
-var text=ticketAppText(order,reprint);
+var text=ticketAndroidText(order,reprint);
 var url="btprinterplus://print?content="+encodeURIComponent(text);
 if(url.length>2000)throw new Error("Nota longa para abrir o app. Use o envio via Android.");
 ANDROID_PRINT={order:order,url:url,lastAttempt:0};
@@ -471,3 +471,4 @@ finally{clearTimeout(timer);if(generation===PRINT_PREPARATION){PRINT_PREPARING=f
 var printContext={getAuth:function(){return AUTH},getOrder:getSavedOrder,canPrint:canPrintSavedOrder,onMessage:toast,request:function(path,options){return api(path,options)}};
 if(window.PrintBridge)window.PrintBridge.configure(printContext);
 startAuthApp();
+
