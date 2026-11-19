@@ -40,7 +40,7 @@
       'Pizza brotinho de mussarela': 'Pizza mussarela',
       'Pizza brotinho de frango com catupiry': 'Pizza frango c/ catupiry'
     };
-    name = String(name).replace(/[\x00-\x1f\x7f]/g, ' ').trim();
+    name = String(name).replace(/[\x00-\x1f\x7f]/g, ' ').replace(/\[+\/?(?:small|center|right|large)\]+/gi, '').replace(/\*\*/g, '').trim();
     if (/^pastel\s+(?:de\s+)?mist(?:ão|ao)$/i.test(name)) return 'Mistão';
     if (/^pastel\s+(?:de\s+)?mist[ou]$/i.test(name)) return 'Misto';
     return Object.prototype.hasOwnProperty.call(names, name) ? names[name] :
@@ -79,18 +79,10 @@
   };
 
   root.ticketAppText = function (order, reprint) {
-    var plain = root.ticketText(order, reprint).replace(/[\x00-\x09\x0b-\x1f\x7f]/g, '');
-    var section = 0;
-    var lines = plain.split('\n').map(function (line) {
-      if (line.trim() === '--------------------------------') {
-        section++;
-        return line;
-      }
-      if (section === 1 && line.trim()) {
-        return '**' + line.replace(/\*/g, '') + '**';
-      }
-      return line;
-    });
-    return lines.join('\n').replace(/\n+$/, '') + '\n\n\n';
+    var text = root.ticketText(order, reprint)
+      .replace(/[\x00-\x09\x0b-\x1f\x7f]/g, '')
+      .replace(/\[+\/?(?:small|center|right|large)\]+/gi, '')
+      .replace(/\*\*/g, '');
+    return text.replace(/\n+$/, '') + '\n\n\n';
   };
 }(window));

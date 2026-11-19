@@ -943,7 +943,7 @@ function changePrintDestination() {
     $("androidPrinterSettings").hidden = $("printDestination").value !== "android_app";
     $("printDestinationHelp").textContent = $("printDestination").value === "print_bridge" ?
         "O pedido segue pela internet para o Android e sai na impressora conectada a ele. Teste gratuito limitado a 10 impressões por aparelho." :
-        "No Android, ative o serviço de impressão Bluetooth-USB Thermal Printer+. Ao imprimir, selecione esse serviço e o papel de 58 mm. A nota usa letra de 14 pt.";
+        "No Android, pareie a impressora por Bluetooth, abra o Bluetooth-USB Thermal Printer+ e selecione essa impressora como padrão. Ao imprimir o pedido, o sistema abre o aplicativo neste aparelho.";
     sum();
     drawHist();
 }
@@ -961,11 +961,15 @@ function togglePrinterSettings() {
         settings.setAttribute("open", "");
 }
 function prepareAndroidPrint(order, reprint) {
-    ANDROID_PRINT = { order: order, reprint: reprint, lastAttempt: 0 };
-    $("androidPrintMessage").textContent = "Pedido #" + order.id + " salvo. Selecione Bluetooth-USB Thermal Printer+ e papel de 58 mm para imprimir com a letra maior.";
-    $("androidPrintOpen").textContent = "Imprimir nota com letra maior";
+    var text = ticketAppText(order, reprint);
+    var url = "btprinterplus://print?content=" + encodeURIComponent(text);
+    if (url.length > 2000)
+        throw new Error("Nota longa para abrir o app. Use o envio via Android.");
+    ANDROID_PRINT = { order: order, url: url, lastAttempt: 0 };
+    $("androidPrintMessage").textContent = "Pedido #" + order.id + " pronto para abrir no aplicativo.";
     $("androidPrintOpen").hidden = false;
     $("androidPrintSaved").hidden = false;
+    $("androidPrintSaved").scrollIntoView();
 }
 function openAndroidPrint() {
     var prepared = ANDROID_PRINT;
@@ -975,47 +979,9 @@ function openAndroidPrint() {
     if (prepared.lastAttempt && now - prepared.lastAttempt < 1500)
         return;
     prepared.lastAttempt = now;
-    var receipt = $("androidNativeReceipt"), section = 0, lastItem = null;
-    receipt.textContent = "";
-    function add(tag, text, className) {
-        var element = document.createElement(tag);
-        element.textContent = text;
-        if (className)
-            element.className = className;
-        receipt.appendChild(element);
-        return element;
-    }
-    String(ticketText(prepared.order, prepared.reprint)).replace(/[\x00-\x09\x0b-\x1f\x7f]/g, "").split("\n").forEach(function (line) {
-        line = line.replace(/\[\/?(?:small|center|right|large)\]/gi, "").replace(/\*\*/g, "").trim();
-        if (!line)
-            return;
-        if (line === "--------------------------------") {
-            section++;
-            add("hr", "");
-            return;
-        }
-        if (section === 1) {
-            if (/^\d+x\s/.test(line) || !lastItem)
-                lastItem = add("p", line, "native-item");
-            else
-                lastItem.textContent += " " + line;
-        }
-        else
-            add("p", line, section === 0 ? "native-heading" : "native-footer");
-    });
-    document.documentElement.classList.add("native-receipt-print");
-    function finish() {
-        document.documentElement.classList.remove("native-receipt-print");
-        window.removeEventListener("afterprint", finish);
-    }
-    window.addEventListener("afterprint", finish);
-    try {
-        window.print();
-    }
-    catch (error) {
-        finish();
-        throw error;
-    }
+    $("androidPrintOpen").textContent = "Abrir pedido salvo no aplicativo";
+    $("androidPrintMessage").textContent = "Pedido #" + prepared.order.id + " salvo. Impressão solicitada no aplicativo. Se ele não abriu, toque no botão abaixo. Confira o papel antes de repetir.";
+    window.location.href = prepared.url;
 }
 function printSavedNow(order, reprint) {
     if (!canPrintSavedOrder(order))

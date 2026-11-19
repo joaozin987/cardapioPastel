@@ -10,7 +10,7 @@ class HomeRouteTests(unittest.TestCase):
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertRegex(response.headers["X-DA-App-Version"], r"^[a-f0-9]{12}$")
         self.assertIn(b"/static/orders-app.js?v=", response.data)
-        self.assertIn(b"androidNativeReceipt", response.data)
+        self.assertNotIn(b"androidNativeReceipt", response.data)
         response.close()
 
     def test_home_serves_the_orders_page(self):
@@ -25,6 +25,8 @@ class HomeRouteTests(unittest.TestCase):
         self.assertNotIn(b"core-js-bundle", response.data)
         script = app.test_client().get("/static/orders-app.js")
         self.assertEqual(script.status_code, 200)
+        self.assertIn(b"btprinterplus://print?content=", script.data)
+        self.assertNotIn(b"window.print()", script.data)
         self.assertIn("no-store", script.headers["Cache-Control"])
         self.assertEqual(script.headers["X-DA-App-Version"], response.headers["X-DA-App-Version"])
         self.assertIn(b"loginAccount", script.data)

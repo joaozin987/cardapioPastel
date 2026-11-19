@@ -224,16 +224,6 @@ main{padding-bottom:150px}
 .toast{top:12px;top:calc(12px + env(safe-area-inset-top,0px))}
 .catalog-edit{display:block;width:100%;min-height:44px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 
-#androidNativeReceipt{display:none}
-@page native-receipt{size:58mm 180mm;margin:2mm}
-@media print{
-html.native-receipt-print,html.native-receipt-print body{margin:0!important;padding:0!important;background:white!important;color:black!important}
-.native-receipt-print body>*{display:none!important}
-.native-receipt-print #androidNativeReceipt{display:block!important;page:native-receipt;width:48mm;max-width:100%;background:white;color:black;margin:0;padding:0;font:14pt/1.3 Arial,sans-serif}
-#androidNativeReceipt .native-heading,#androidNativeReceipt .native-footer{margin:0;text-align:center;font:9pt/1.3 Arial,sans-serif}
-#androidNativeReceipt .native-item{margin:0 0 3mm;font-weight:700;word-wrap:break-word;page-break-inside:avoid}
-#androidNativeReceipt hr{border:0;border-top:1px dashed black;margin:2mm 0}
-}
 #appUpdateNotice{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border:2px solid var(--gold);border-radius:10px;background:var(--card);color:var(--ink)}
 #appUpdateNotice button{min-height:44px;margin:4px;padding:8px 12px;border:0;border-radius:8px;background:var(--gold);color:#1c1a17;font:inherit;font-weight:bold;cursor:pointer}
 </style>
@@ -256,18 +246,18 @@ document.addEventListener("DOMContentLoaded", function () {
 <main>
 <section class="print-prepared" id="androidPrintSaved" hidden>
 <p id="androidPrintMessage" role="status" aria-live="polite"></p>
-<button class="btn" id="androidPrintOpen" type="button" onclick="openAndroidPrint()">Imprimir nota com letra maior</button>
+<button class="btn" id="androidPrintOpen" type="button" onclick="openAndroidPrint()">Abrir Bluetooth-USB Thermal Printer+</button>
 </section>
 <section class="view on" id="v1">
 <details id="printerSettings" class="print-choice">
 <summary>Configurar impressora<span class="printer-subtitle">Escolha o método de impressão e configure o aparelho.</span></summary>
 <div class="printer-settings-body">
 <label for="printDestination">Método de impressão</label>
-<select id="printDestination" aria-describedby="printDestinationHelp" onchange="changePrintDestination()"><option value="print_bridge">iPad, iPhone ou computador via Android</option><option value="android_app">Android direto · letra maior</option></select>
+<select id="printDestination" aria-describedby="printDestinationHelp" onchange="changePrintDestination()"><option value="print_bridge">iPad, iPhone ou computador via Android</option><option value="android_app">Android direto · impressora pareada</option></select>
 <p id="printDestinationHelp" class="printer-method-help">Use o Bluetooth-USB Thermal Printer+ no Android conectado à impressora.</p>
 <div id="androidPrinterSettings" class="printer-code-panel" hidden>
 <p class="printer-method-help">Use o Bluetooth-USB Thermal Printer+ neste Android.</p>
-<ol class="printer-method-help"><li>No Bluetooth-USB Thermal Printer+, conecte a impressora.</li><li>Nas configurações de impressão do Android, ative o serviço Bluetooth-USB Thermal Printer+.</li><li>Ao imprimir o pedido, selecione esse serviço e papel de 58 mm.</li></ol>
+<ol class="printer-method-help"><li>Pareie a impressora nas configurações Bluetooth do Android.</li><li>No aplicativo, conecte à impressora pareada e selecione-a como padrão.</li><li>Volte ao catálogo e toque em Imprimir pedido.</li></ol>
 <a class="printer-method-help" href="https://play.google.com/store/apps/details?id=com.iyaltamizh.app.btprinter" target="_blank" rel="noopener">Instalar Bluetooth-USB Thermal Printer+</a>
 </div>
 <div id="printBridgeSettings" class="printer-code-panel" style="display:none">
@@ -288,7 +278,6 @@ document.addEventListener("DOMContentLoaded", function () {
 <section class="view" id="v3"><div class="hint">Toque em um pedido para ver as informações, imprimir ou cancelar.</div><div class="sums" id="sum"></div><input type="text" id="q" placeholder="Buscar pedido pelo número ou produto" oninput="drawHist()"><div id="hist"></div></section>
 <section class="view" id="v4"><button class="btn" style="margin:0 0 12px" onclick="edit(0)">+ Adicionar novo produto</button><div class="grid" id="prods"></div></section>
 </main>
-<article id="androidNativeReceipt" aria-hidden="true"></article>
 <div class="bar" id="bar"><div class="bar-summary"><div id="n">0 itens</div><b id="tot">R$ 0,00</b></div><div class="bar-actions"><button id="reprintLast" type="button" onclick="reprintLastOrder()" hidden>Reimprimir</button><button id="rev" type="button" disabled onclick="send()">Imprimir pedido</button></div></div>
 
 
@@ -300,9 +289,9 @@ document.addEventListener("DOMContentLoaded", function () {
 <label class="sw"><input type="checkbox" id="pa" checked>Produto ativo (aparece no cardápio)</label>
 <button class="btn" onclick="saveP()">Salvar</button><button class="btn alt" onclick="pd.close()">Cancelar</button></dialog>
 
-<script src="/static/ticket-text.js?v=3648c3d4a3ca"></script>
+<script src="/static/ticket-text.js?v=8762ed34ae9b"></script>
 <script src="/static/print-bridge.js"></script>
 
 
-<script src="/static/orders-app.js?v=4ce51f2b2367"></script>
+<script src="/static/orders-app.js?v=369ab7393ff9"></script>
 </body></html>
