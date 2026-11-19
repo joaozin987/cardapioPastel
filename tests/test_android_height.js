@@ -12,23 +12,29 @@ const order = {id:118,t:'2026-11-19T15:24:00',itens:[
   {q:1,n:'Pastel de frango com catupiry'},
   {q:12,n:'Pastel com um nome muito longo para verificar todas as continuacoes'}
 ]};
-const command = /\x1d![\x00\x01]/g;
+const command = /(?:\x1d!|\x1bE)[\x00\x01]/g;
 function inspect(text) {
-  let height=1, line='', lines=[];
+  let height=1, bold=false, line='', lines=[];
   for(let i=0;i<text.length;i++) {
-    if(text[i]==='\x1d') {
+    if(text[i]==='\x1b') {
+      assert.equal(text[++i], 'E');
+      const value=text.charCodeAt(++i);
+      assert.ok(value===0 || value===1);
+      bold=value===1;
+    } else if(text[i]==='\x1d') {
       assert.equal(text[++i], '!');
       const value=text.charCodeAt(++i);
       assert.ok(value===0 || value===1);
       height=value+1;
     } else if(text[i]==='\n') {
-      lines.push({text:line,height});line='';
+      lines.push({text:line,height,bold});line='';
     } else line+=text[i];
   }
   assert.equal(height,1,'normal size restored at the end');
+  assert.equal(bold,false,'bold disabled at the end');
   return lines;
 }
-test('Only products and footer are taller, including continuation lines',()=>{
+test('Only products and footer are taller and bold, including continuation lines',()=>{
   const plain=api.ticketAppText(order,true);
   const result=api.ticketAndroidText(order,true);
   assert.equal(result.replace(command,''),plain,'content and spacing unchanged');
@@ -36,10 +42,11 @@ test('Only products and footer are taller, including continuation lines',()=>{
   let section=0;
   for(const line of lines) {
     if(line.text.trim()==='--------------------------------') {
-      section++;assert.equal(line.height,1);continue;
+      section++;assert.equal(line.height,1);assert.equal(line.bold,false);continue;
     }
     if(!line.text.trim()) continue;
     assert.equal(line.height,section===0?1:2);
+    assert.equal(line.bold,section!==0);
     assert.ok(line.text.length<=32);
   }
   assert.ok(lines.some(l=>l.text.includes('2x MISTAO')&&l.height===2));
@@ -68,3 +75,4 @@ test('Header, original remote formatter and invalid dates remain safe',()=>{
   assert.doesNotMatch(invalid,/Invalid Date|NaN/);
   inspect(invalid);
 });
+

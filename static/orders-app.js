@@ -961,6 +961,7 @@ function togglePrinterSettings() {
         settings.setAttribute("open", "");
 }
 function prepareAndroidPrint(order, reprint) {
+    // A nota Android usa altura dupla e negrito nos produtos e no rodape.
     var text = ticketAndroidText(order, reprint);
     var url = "btprinterplus://print?content=" + encodeURIComponent(text);
     if (url.length > 2000)

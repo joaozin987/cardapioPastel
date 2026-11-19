@@ -88,7 +88,8 @@
 
   root.ticketAndroidText = function (order, reprint) {
     var section = 0;
-    // ESC/POS GS ! 1: double height, original width. Flush the line before
+    // ESC/POS GS ! 1 plus ESC E 1: double height and bold, original width.
+    // Flush the line before
     // resetting. The direct Android app must pass these bytes to the printer.
     // Print Bridge continues using ticketText, without this transformation.
     return root.ticketAppText(order, reprint).split('\n').map(function (line) {
@@ -99,8 +100,9 @@
       }
       var enlarge = content && (section === 1 ||
         (section === 2 && /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/.test(content)));
-      return enlarge ? '\x1d!\x01' + line + '\n\x1d!\x00' : line + '\n';
+      return enlarge ? '\x1d!\x01\x1bE\x01' + line + '\n\x1bE\x00\x1d!\x00' : line + '\n';
     }).join('').slice(0, -1);
   };
 }(window));
+
 

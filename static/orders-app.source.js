@@ -405,6 +405,7 @@ if(settings.hasAttribute("open"))settings.removeAttribute("open");
 else settings.setAttribute("open","");
 }
 function prepareAndroidPrint(order,reprint){
+// A nota Android usa altura dupla e negrito nos produtos e no rodape.
 var text=ticketAndroidText(order,reprint);
 var url="btprinterplus://print?content="+encodeURIComponent(text);
 if(url.length>2000)throw new Error("Nota longa para abrir o app. Use o envio via Android.");
@@ -471,4 +472,5 @@ finally{clearTimeout(timer);if(generation===PRINT_PREPARATION){PRINT_PREPARING=f
 var printContext={getAuth:function(){return AUTH},getOrder:getSavedOrder,canPrint:canPrintSavedOrder,onMessage:toast,request:function(path,options){return api(path,options)}};
 if(window.PrintBridge)window.PrintBridge.configure(printContext);
 startAuthApp();
+
 
