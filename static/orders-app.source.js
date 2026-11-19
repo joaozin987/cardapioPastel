@@ -377,7 +377,7 @@ $("printBridgeSettings").style.display=$("printDestination").value==="print_brid
 $("androidPrinterSettings").hidden=$("printDestination").value!=="android_app";
 $("printDestinationHelp").textContent=$("printDestination").value==="print_bridge"?
   "O pedido segue pela internet para o Android e sai na impressora conectada a ele. Teste gratuito limitado a 10 impressões por aparelho.":
-  "No Android, ative o serviço de impressão Bluetooth-USB Thermal Printer+. Ao imprimir, selecione esse serviço e o papel de 58 mm. A nota usa letra de 12 pt.";
+  "No Android, ative o serviço de impressão Bluetooth-USB Thermal Printer+. Ao imprimir, selecione esse serviço e o papel de 58 mm. A nota usa letra de 14 pt.";
 sum();drawHist()
 }
 function orderPrintButton(order){
@@ -413,7 +413,7 @@ receipt.appendChild(element);
 return element;
 }
 String(ticketText(prepared.order,prepared.reprint)).replace(/[\x00-\x09\x0b-\x1f\x7f]/g,"").split("\n").forEach(function(line){
-line=line.trim();
+line=line.replace(/\[\/?(?:small|center|right|large)\]/gi,"").replace(/\*\*/g,"").trim();
 if(!line)return;
 if(line==="--------------------------------"){section++;add("hr","");return}
 if(section===1){

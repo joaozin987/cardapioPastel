@@ -289,7 +289,8 @@ def carregar_pedido(conn, pedido):
 
 @app.after_request
 def prevent_stale_api_data(response):
-    if request.path.startswith("/api/"):
+    if (request.path.startswith("/api/") or request.path == "/"
+            or request.path.startswith("/static/") and request.path.endswith(".js")):
         response.headers["Cache-Control"] = "no-store, private"
     return response
 
