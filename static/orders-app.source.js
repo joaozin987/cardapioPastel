@@ -188,11 +188,33 @@ document.querySelector("main").appendChild(adminView);
 var productView=$("v4");
 productView.insertAdjacentHTML("afterbegin",'<button class="btn alt" id="adminBack" style="margin:0 0 12px;display:none" onclick="go(5)">Voltar ao painel</button>');
 
+
+var APP_BUILD_VERSION=(function(){
+var script=document.querySelector('script[src*="/static/orders-app.js?v="]');
+var match=script&&script.getAttribute("src").match(/[?&]v=([^&]+)/);
+return match?match[1]:"";
+})();
+function checkAppVersion(version){
+if(!AUTH||!version||!APP_BUILD_VERSION||version===APP_BUILD_VERSION||$("appUpdateNotice"))return;
+var notice=document.createElement("div"),text=document.createElement("span"),button=document.createElement("button");
+notice.id="appUpdateNotice";notice.setAttribute("role","status");
+text.textContent="Há uma versão nova do sistema.";
+button.type="button";button.textContent="Atualizar sistema";
+button.onclick=function(){
+if(SENDING||PRODUCT_SAVING){toast("Aguarde o salvamento ou a impressão terminar.");return}
+saveCart();
+window.location.href=window.location.pathname+"?v="+encodeURIComponent(version);
+};
+notice.appendChild(text);notice.appendChild(button);
+document.querySelector("main").insertBefore(notice,document.querySelector("main").firstChild);
+}
+
 api=async function(path,options){
 var opts=options||{},method=(opts.method||"GET").toUpperCase(),headers=new Headers(opts.headers||{});
 if(method!=="GET"&&CSRF_TOKEN)headers.set("X-CSRF-Token",CSRF_TOKEN);
 opts.headers=headers;
 var r=await fetch(path,opts),data=await r.json();
+if(r.headers&&r.headers.get)checkAppVersion(r.headers.get("X-DA-App-Version"));
 if(!r.ok)throw new Error(data.erro||"Falha ao comunicar com o servidor.");
 return data
 };
@@ -277,14 +299,6 @@ try{await api("/api/auth/logout",{method:"POST"})}catch(error){console.error(err
 cart={};saveCart();AUTH=null;CSRF_TOKEN="";MENU=[];orders=[];showLogin()
 }
 var REFRESHING=false;
-window.addEventListener("keydown",function(event){
-var key=event.key||"",reloadKey=key==="F5"||(key.toLowerCase()==="r"&&(event.ctrlKey||event.metaKey));
-if(!reloadKey||!AUTH)return;
-event.preventDefault();
-event.stopPropagation();
-if($("pd").open){toast("Feche o formulário antes de atualizar os dados.");return}
-refreshAppData()
-},true);
 function ensureRefreshButton(){
 if($("refreshDataButton"))return;
 var button=document.createElement("button");

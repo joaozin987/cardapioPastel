@@ -4,6 +4,7 @@ from functools import wraps
 from hmac import compare_digest
 from io import BytesIO
 import os
+import hashlib
 from secrets import token_hex, token_urlsafe
 from uuid import uuid4
 from flask import Flask, jsonify, request, send_file, session
@@ -21,6 +22,8 @@ app = Flask(__name__)
 # Atrás do proxy do Railway: lê o IP real do cliente (X-Forwarded-For).
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 PAGE_PATH = BASE_DIR / "da-lanches-pedidos.html"
+FRONTEND_PATH = BASE_DIR / "static" / "orders-app.js"
+APP_BUILD_VERSION = hashlib.sha256(FRONTEND_PATH.read_bytes()).hexdigest()[:12] if FRONTEND_PATH.is_file() else ""
 secret_key = os.environ.get("FLASK_SECRET_KEY")
 if not secret_key or secret_key.startswith("replace-with-"):
     secret_key = token_hex(32)
@@ -289,6 +292,7 @@ def carregar_pedido(conn, pedido):
 
 @app.after_request
 def prevent_stale_api_data(response):
+    response.headers["X-DA-App-Version"] = APP_BUILD_VERSION
     if (request.path.startswith("/api/") or request.path in {"/", "/android"}
             or request.path.startswith("/static/") and request.path.endswith(".js")):
         response.headers["Cache-Control"] = "no-store, private"
